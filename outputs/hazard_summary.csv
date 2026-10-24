@@ -1,0 +1,6 @@
+class_id,class_name,pixel_count,area_m2,area_km2,pct_valid_terrain,pct_total_raster
+1,Safe,10833,623980800.0,623.9808,17.33,17.33
+2,Caution,23792,1370419200.0,1370.4192,38.07,38.07
+3,Unsafe,23825,1372320000.0,1372.32,38.12,38.12
+4,Shadowed-Unknown,4044,232934400.0,232.9344,6.47,6.47
+0,NoData,6,345600.0,0.3456,0.0,0.01

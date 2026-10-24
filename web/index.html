@@ -1,0 +1,2945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LunaSafe Mission Control | Autonomous Lunar Landing & Hazard Classification</title>
+  
+  <!-- Google Fonts: non-blocking preconnect & swap (page paints with fallback fonts, swaps with zero reflow) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap">
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap">
+
+  <link rel="stylesheet" href="/styles.css">
+
+  <!-- KaTeX: CSS loaded async (only the Method tab renders formulas); JS deferred -->
+  <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+        onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"></noscript>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+  <!-- Three.js (603 KB) is lazy-loaded on first open of the 3D tab:
+       see ensureThreeJs() in app.js; the old blocking vendor tags and the
+       document.write CDN fallback were removed in Phase 5. -->
+</head>
+<body data-active-tab="missionControlTab">
+  <div id="srAnnouncer" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
+  <!-- Top-Level Error Boundary Modal Overlay -->
+  <div id="errorBoundaryModal" class="error-boundary-overlay" style="display:none;" role="alertdialog" aria-modal="true" aria-labelledby="ebTitle">
+    <div class="error-boundary-card">
+      <div class="eb-header">
+        <span class="eb-icon"><i data-lucide="alert-triangle"></i></span>
+        <h3 id="ebTitle">Mission Control Runtime Exception</h3>
+      </div>
+      <p id="ebMessage" class="eb-message">An unexpected runtime exception was intercepted by the error boundary.</p>
+      <pre id="ebStack" class="eb-stack"></pre>
+      <div class="eb-actions">
+        <button id="ebBtnReload" class="btn btn-primary" onclick="window.location.reload()">Reload Application</button>
+        <button id="ebBtnDismiss" class="btn btn-secondary" onclick="document.getElementById('errorBoundaryModal').style.display='none'">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+    <!-- Left Navigation Rail -->
+    <!-- Global Live Accessibility Announcer -->
+    <div id="a11yLiveAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Left Vertical Navigation Rail -->
+    <aside class="app-nav-rail" id="appNavRail" aria-label="Primary Navigation">
+      <div class="nav-rail-logo" onclick="switchTab('missionControlTab')" title="ORBISLUNA Mission Control" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')switchTab('missionControlTab')">
+        <i data-lucide="moon"></i>
+      </div>
+      <div class="nav-rail-list" role="tablist" aria-label="Main Mission Control Tabs" id="mainTabList">
+        <button class="nav-rail-btn active" id="tab-btn-missionControlTab" data-tab="missionControlTab" onclick="switchTab('missionControlTab', this)" title="Mission Control Dashboard" role="tab" aria-selected="true" aria-controls="missionControlTab" tabindex="0">
+          <span class="nav-rail-icon"><i data-lucide="satellite"></i></span>
+          <span class="nav-rail-label">Control</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-mapStudioTab" data-tab="mapStudioTab" onclick="switchTab('mapStudioTab', this)" title="2D Geospatial Studio" role="tab" aria-selected="false" aria-controls="mapStudioTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="map"></i></span>
+          <span class="nav-rail-label">2D Map</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-terrain3dTab" data-tab="terrain3dTab" onclick="switchTab('terrain3dTab', this)" title="3D Topography Mesh" role="tab" aria-selected="false" aria-controls="terrain3dTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="orbit"></i></span>
+          <span class="nav-rail-label">3D Mesh</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-validationTab" data-tab="validationTab" onclick="switchTab('validationTab', this)" title="Analytics & Validation" role="tab" aria-selected="false" aria-controls="validationTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="bar-chart-3"></i></span>
+          <span class="nav-rail-label">Analytics</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-landingSitesTab" data-tab="landingSitesTab" onclick="switchTab('landingSitesTab', this)" title="Candidate Sites Ranking" role="tab" aria-selected="false" aria-controls="landingSitesTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="target"></i></span>
+          <span class="nav-rail-label">Sites</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-roverStudioTab" data-tab="roverStudioTab" onclick="switchTab('roverStudioTab', this)" title="Rover Traverse Mobility" role="tab" aria-selected="false" aria-controls="roverStudioTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="navigation"></i></span>
+          <span class="nav-rail-label">Rover</span>
+        </button>
+        <button class="nav-rail-btn" id="tab-btn-controlTab" data-tab="controlTab" onclick="switchTab('controlTab', this)" title="Safety Screening Settings" role="tab" aria-selected="false" aria-controls="controlTab" tabindex="-1">
+          <span class="nav-rail-icon"><i data-lucide="sliders"></i></span>
+          <span class="nav-rail-label">Config</span>
+        </button>
+      </div>
+      <div class="nav-rail-footer">
+        <button class="nav-rail-btn" onclick="openShortcutsHelp()" title="Keyboard Shortcuts Help (?)" aria-label="Keyboard Shortcuts Help">
+          <span class="nav-rail-icon"><i data-lucide="keyboard"></i></span>
+          <span class="nav-rail-label">Keys</span>
+        </button>
+        <button class="nav-rail-btn" onclick="startJudgeTour()" title="60-Second Guided Tour">
+          <span class="nav-rail-icon"><i data-lucide="award"></i></span>
+          <span class="nav-rail-label">Tour</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Application Area -->
+    <div class="app-main-area">
+      <!-- Top Mission Control Header -->
+      <header class="mission-header">
+        <div class="brand-section">
+          <div class="brand-logo-ring"><i data-lucide="moon"></i></div>
+          <div class="brand-title">
+            <h1>OrbisLuna <span>Mission Control</span></h1>
+            <p>Lunar South Pole Autonomous Landing, Surface Hazards & Rover Traverse</p>
+          </div>
+        </div>
+
+        <div class="header-badges">
+          <div class="status-badge badge-connected" id="connectionBadge">CONNECTED</div>
+          <!-- Moon Site Selector -->
+          <div class="site-selector-pill" style="display: flex; align-items: center; gap: 0.4rem; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 6px; padding: 0.25rem 0.6rem;">
+            <span style="font-size: 0.72rem; color: #00D9F5; font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="map-pin" style="width:13px;height:13px;"></i> REGION:</span>
+            <select id="lunarSiteSelector" onchange="onLunarSiteChange(this.value)" style="background: transparent; color: #f8fafc; border: none; font-size: 0.74rem; font-weight: 600; cursor: pointer; outline: none;">
+              <optgroup label="NASA Artemis III Candidate Regions" style="background: #0B151F; color: #00D9F5;">
+                <option value="artemis_haworth" style="background: #0B151F;">Haworth (-86.79°S)</option>
+                <option value="artemis_malapert_massif" style="background: #0B151F;">Malapert Massif (-86.04°S)</option>
+                <option value="artemis_mons_mouton" style="background: #0B151F;">Mons Mouton (-85.40°S)</option>
+                <option value="artemis_nobile_rim_2" style="background: #0B151F;">Nobile Rim 2 (-83.89°S)</option>
+                <option value="artemis_slater_plain" style="background: #0B151F;">Slater Plain (-87.20°S)</option>
+                <option value="artemis_peak_cabeus_b" style="background: #0B151F;">Peak near Cabeus B (-83.57°S)</option>
+              </optgroup>
+              <optgroup label="South Pole Craters & Regions" style="background: #0B151F; color: #FFB52E;">
+                <option value="lola_crop" selected style="background: #0B151F;">USGS / NASA LOLA South Pole (60x60 km)</option>
+                <option value="shackleton" style="background: #0B151F;">Shackleton Crater (89.9°S)</option>
+                <option value="malapert" style="background: #0B151F;">Malapert Mountain (84.9°S)</option>
+                <option value="faustini" style="background: #0B151F;">Faustini Basin (87.3°S)</option>
+                <option value="nobile" style="background: #0B151F;">Nobile Rim - VIPER (85.2°S)</option>
+              </optgroup>
+            </select>
+          </div>
+          <!-- Persistent Badges -->
+          <div class="status-badge badge-connected" id="persistentSyntheticBadge">REAL NASA LOLA</div>
+          <div class="status-badge badge-offline" id="offlineDemoBadge" title="Precomputed outputs loaded directly from outputs/">OFFLINE READY</div>
+          <div class="status-badge badge-crs" title="IAU 2015 Lunar Spheroid">CRS: LUNAR POLAR STEREOGRAPHIC</div>
+        </div>
+
+        <!-- Global Header Quick Search & Actions -->
+        <div class="header-actions">
+          <div class="header-search-bar">
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: inline-flex; align-items: center;"><i data-lucide="search" style="width:13px;height:13px;"></i></span>
+            <input type="text" class="header-search-input" id="globalSearchInput" placeholder="Jump to crater or site..." oninput="onGlobalSearch(this.value)" autocomplete="off">
+          </div>
+          <button class="btn btn-tour" id="btnTourHeader" onclick="startJudgeTour()" title="Interactive 60-second guided tour for hackathon judges">
+            <span><i data-lucide="award"></i></span> 60s Tour
+          </button>
+          <button class="btn btn-secondary" id="btnRecalcHeader" onclick="recalculateFast()">
+            <span><i data-lucide="zap"></i></span> Recalculate
+          </button>
+          <button class="btn btn-primary" id="btnRunPipelineHeader" onclick="triggerRunPipeline()">
+            <span><i data-lucide="play"></i></span> Run Pipeline
+          </button>
+        </div>
+      </header>
+
+  <!-- Interactive 60-Second Judge Tour Banner Overlay (Requirement 4) -->
+  <aside class="tour-banner-overlay" id="judgeTourBanner" aria-label="Interactive Guided Tour">
+    <div class="tour-header-row">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="tour-step-pill" id="tourStepBadge">STEP 1 OF 5</span>
+        <span style="font-size: 0.76rem; color: #fde047; font-weight: 700;">LunaSafe 60-Second Tour</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.4rem;">
+        <span id="tourTimerCountdown" style="font-family: var(--font-mono); font-size: 0.74rem; color: #94a3b8;">12s</span>
+        <button onclick="stopJudgeTour()" style="background: none; border: none; color: #94a3b8; font-size: 1.1rem; cursor: pointer; padding: 0 0.3rem;" title="Close Tour">×</button>
+      </div>
+    </div>
+    <div class="tour-timer-track">
+      <div class="tour-timer-fill" id="tourTimerFill"></div>
+    </div>
+    <div class="tour-content-title" id="tourTitle">1. Truthful Provenance & Lunar Spheroid</div>
+    <div class="tour-content-desc" id="tourDesc">
+      LunaSafe strictly avoids invented claims. Every pixel maps to Moon South Pole Polar Stereographic coordinates (IAU 2015 Sphere R=1,737,400m). If running on procedural terrain, the persistent SYNTHETIC DEMO badge is prominently displayed.
+    </div>
+    <div class="tour-actions-row">
+      <div style="display: flex; gap: 0.4rem;">
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.72rem;" onclick="prevTourStep()" id="btnTourPrev">◄ Back</button>
+        <button class="btn btn-primary" style="padding: 0.3rem 0.6rem; font-size: 0.72rem;" onclick="nextTourStep()" id="btnTourNext">Next Step ►</button>
+      </div>
+      <div style="display: flex; gap: 0.4rem;">
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.72rem;" onclick="toggleTourPause()" id="btnTourPause"><i data-lucide="pause"></i> Pause</button>
+        <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.72rem;" onclick="stopJudgeTour()"><i data-lucide="x"></i> Exit Tour</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Truthful Raster Metadata Strip (Defect 7: dataset name, source, CRS, pixel size, grid size, NoData) -->
+  <section class="raster-meta-bar" id="rasterMetaBar">
+    <div class="meta-item">
+      <span class="meta-label">DATASET:</span>
+      <span class="meta-val highlight" id="metaDatasetName">Real NASA LRO LOLA DEM (80°S – 90°S)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">SOURCE:</span>
+      <span class="meta-val" id="metaDatasetSource">NASA Planetary Data System</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">CRS:</span>
+      <span class="meta-val" id="metaCrs">Polar Stereographic (IAU 2015 Sphere)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">PIXEL SIZE:</span>
+      <span class="meta-val badge-val" id="metaPixelSize">240.0 m/px</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">GRID SIZE:</span>
+      <span class="meta-val badge-val" id="metaGridSize">250 × 250 px (62,500 px)</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">NODATA:</span>
+      <span class="meta-val badge-val" id="metaNoData">-9999.0</span>
+    </div>
+  </section>
+
+  <!-- Top KPI Ribbon (Space-Friendly High-Density Aerospace HUD) -->
+  <section class="kpi-ribbon">
+    <!-- Card 1: Total Area -->
+    <div class="kpi-box kpi-total">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Total Area</span>
+        <span class="kpi-chip chip-total" id="kpiTotalChip">100.0% Mapped</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiTotalKm2">--</span> <span class="kpi-unit">km²</span></div>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barTotal" style="width: 100%; background: #38bdf8;"></div></div>
+    </div>
+
+    <!-- Card 2: Safe Zone (Class 1) -->
+    <div class="kpi-box kpi-safe">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Safe (Class 1)</span>
+        <span class="kpi-chip chip-safe" id="kpiSafePct">--%</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiSafeKm2">--</span> <span class="kpi-unit">km²</span></div>
+        <span class="kpi-delta-chip delta-neutral" id="deltaSafe">Δ 0.00 km²</span>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barSafe" style="width: 0%; background: var(--color-safe);"></div></div>
+    </div>
+
+    <!-- Card 3: Caution Zone (Class 2) -->
+    <div class="kpi-box kpi-caution">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Caution (Class 2)</span>
+        <span class="kpi-chip chip-caution" id="kpiCautionPct">--%</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiCautionKm2">--</span> <span class="kpi-unit">km²</span></div>
+        <span class="kpi-delta-chip delta-neutral" id="deltaCaution">Δ 0.00 km²</span>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barCaution" style="width: 0%; background: var(--color-caution);"></div></div>
+    </div>
+
+    <!-- Card 4: Unsafe Zone (Class 3) -->
+    <div class="kpi-box kpi-unsafe">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Unsafe (Class 3)</span>
+        <span class="kpi-chip chip-unsafe" id="kpiUnsafePct">--%</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiUnsafeKm2">--</span> <span class="kpi-unit">km²</span></div>
+        <span class="kpi-delta-chip delta-neutral" id="deltaUnsafe">Δ 0.00 km²</span>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barUnsafe" style="width: 0%; background: var(--color-unsafe);"></div></div>
+    </div>
+
+    <!-- Card 5: Shadowed Floor (Class 4) -->
+    <div class="kpi-box kpi-shadow">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Shadowed (Class 4)</span>
+        <span class="kpi-chip chip-shadow" id="kpiShadowPct">--%</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiShadowKm2">--</span> <span class="kpi-unit">km²</span></div>
+        <span class="kpi-delta-chip delta-neutral" id="deltaShadow">Δ 0.00 km²</span>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barShadow" style="width: 0%; background: var(--color-shadow);"></div></div>
+    </div>
+
+    <!-- Card 6: Candidate Sites -->
+    <div class="kpi-box kpi-sites">
+      <div class="kpi-header-row">
+        <span class="kpi-label">Candidate Sites</span>
+        <span class="kpi-chip chip-sites" id="kpiTopScoreChip">Top --%</span>
+      </div>
+      <div class="kpi-main-row">
+        <div class="kpi-large-value"><span id="kpiSitesCount">--</span> <span class="kpi-unit">Ellipses</span></div>
+        <div class="kpi-formula-tag" title="Rule-based rank formula: S = 1.0 - H">Rank: 1 - H</div>
+      </div>
+      <div class="kpi-progress"><div class="kpi-progress-bar" id="barSites" style="width: 0%; background: var(--color-cyan);"></div></div>
+    </div>
+  </section>
+
+  <!-- Navigation Tabs & HUD Viewport Toggle -->
+  <div class="tabs-container">
+    <button class="tab-btn active" id="tabMissionControlBtn" onclick="switchTab('missionControlTab', this)">
+      <span><i data-lucide="satellite"></i></span> Mission Control
+    </button>
+    <button class="tab-btn" onclick="switchTab('mapStudioTab', this)">
+      <span><i data-lucide="map"></i></span> 2D Studio
+    </button>
+    <button class="tab-btn" onclick="switchTab('terrain3dTab', this)">
+      <span><i data-lucide="orbit"></i></span> 3D Topography
+    </button>
+    <button class="tab-btn" onclick="switchTab('validationTab', this)">
+      <span><i data-lucide="bar-chart-3"></i></span> Validation & Metrics
+    </button>
+    <button class="tab-btn" onclick="switchTab('landingSitesTab', this)">
+      <span><i data-lucide="target"></i></span> Candidate Screening
+    </button>
+    <button class="tab-btn" onclick="switchTab('roverStudioTab', this)" id="tabRoverBtn">
+      <span><i data-lucide="navigation"></i></span> Rover Traverse Studio
+    </button>
+    <button class="tab-btn" onclick="switchTab('controlTab', this)">
+      <span><i data-lucide="sliders"></i></span> Safety Thresholds
+    </button>
+    <button class="tab-kpi-toggle" id="btnTabKpiToggle" onclick="toggleTelemetryRibbon()" title="Toggle Telemetry HUD">
+      <span id="iconKpiToggle">▲</span> <span id="labelKpiToggle">Telemetry HUD</span>
+    </button>
+  </div>
+
+  <!-- Main Content Workspace -->
+  <main>
+    
+    <!-- =================================================================== -->
+    <!-- TAB 0: FLAGSHIP 3D MISSION CONTROL & LUNAR INTELLIGENCE -->
+    <!-- =================================================================== -->
+    <div id="missionControlTab" class="tab-pane active" role="tabpanel" aria-labelledby="tab-btn-missionControlTab" tabindex="0">
+      <div class="lunar-dashboard-grid">
+        
+        <!-- Left Column: Mission Progress, Dataset Overview, Elevation Profile, Regional Risk Map -->
+        <aside class="lunar-col-left">
+          <!-- 1. Mission & Dataset Telemetry -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="activity"></i></span> Mission Telemetry</div>
+              <span class="status-badge badge-connected" style="font-size: 0.58rem;" id="missionProgressBadge">ACTIVE</span>
+            </div>
+            <div class="overview-metric-grid" style="margin-bottom: 0.35rem;">
+              <div class="overview-metric-box">
+                <div class="overview-metric-label">Mapped Area</div>
+                <div class="overview-metric-val cyan" id="mcOverviewArea">3,600 km²</div>
+              </div>
+              <div class="overview-metric-box">
+                <div class="overview-metric-label">Resolution</div>
+                <div class="overview-metric-val" id="mcOverviewRes">240.0 m/px</div>
+              </div>
+              <div class="overview-metric-box">
+                <div class="overview-metric-label">Valid Samples</div>
+                <div class="overview-metric-val cyan" id="mcOverviewSamples">62,500 px</div>
+              </div>
+              <div class="overview-metric-box">
+                <div class="overview-metric-label">Candidate Region</div>
+                <div class="overview-metric-val" id="mcOverviewRegions">9 Artemis III</div>
+              </div>
+            </div>
+            <div style="font-size: 0.62rem; color: var(--color-safe); display: flex; align-items: center; justify-content: space-between; padding-top: 0.25rem; border-top: 1px solid rgba(145, 165, 186, 0.08);">
+              <span><i data-lucide="check-circle-2"></i> Pipeline 5/5 Stages Verified</span>
+              <span id="statusIngestion" style="color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">NASA LOLA</span>
+            </div>
+          </div>
+
+          <!-- 2. Elevation Profile -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="trending-up"></i></span> Elevation Profile</div>
+              <span style="font-size: 0.62rem; color: var(--text-muted);" id="mcProfileLength">Traverse: 4.8 km</span>
+            </div>
+            <canvas id="mcElevationProfileCanvas" class="elevation-profile-canvas" width="280" height="85"></canvas>
+            <div style="display: flex; justify-content: space-between; font-size: 0.64rem; color: var(--text-secondary); margin-top: 0.25rem;">
+              <span>Min: <b id="mcProfileMinElev" style="color: var(--color-cyan);">-3,120 m</b></span>
+              <span>Max: <b id="mcProfileMaxElev" style="color: var(--color-cyan);">+1,250 m</b></span>
+              <span>Slope: <b id="mcProfileMeanSlope" style="color: var(--color-caution);">4.2°</b></span>
+            </div>
+          </div>
+
+          <!-- 3. Regional Risk Map -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="globe"></i></span> Regional Risk Map</div>
+              <button class="btn btn-secondary" style="padding: 0.12rem 0.35rem; font-size: 0.6rem;" onclick="switchTab('mapStudioTab', document.querySelectorAll('.tab-btn')[1])">2D Studio</button>
+            </div>
+            <div style="position: relative;">
+              <canvas id="mcRiskMapCanvas" class="risk-map-canvas" width="280" height="85"></canvas>
+              <div id="mcRiskMapCrosshair" style="position: absolute; width: 10px; height: 10px; border: 1.5px solid #00D9F5; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; display: none;"></div>
+            </div>
+            <div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 0.25rem; display: flex; justify-content: space-between;">
+              <span>Sync with 3D Moon</span>
+              <span id="mcRiskMapCoords" style="font-family: 'JetBrains Mono', monospace; color: var(--color-cyan);">89.9°S, 0.0°E</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center Column: 3D Moon Viewport + Regional Metrics Beneath -->
+        <section class="lunar-col-center">
+          <!-- 3D Moon Viewport -->
+          <div class="lunar-moon-viewport" id="lunarMoonViewport">
+            <!-- Three.js Canvas Mount -->
+            <div id="moonCanvasMount" class="moon-canvas-mount"></div>
+
+            <!-- Top-left Compact Layer Selector -->
+            <div class="lunar-layer-pills" id="lunarLayerPills" role="toolbar" aria-label="Terrain Layer Selector">
+              <button class="layer-pill active" data-layer="realistic" onclick="setMoonLayer('realistic', this)">
+                <span><i data-lucide="globe"></i></span> Real
+              </button>
+              <button class="layer-pill" data-layer="elevation" onclick="setMoonLayer('elevation', this)">
+                <span><i data-lucide="mountain"></i></span> Elev
+              </button>
+              <button class="layer-pill" data-layer="slope" onclick="setMoonLayer('slope', this)">
+                <span><i data-lucide="ruler"></i></span> Slope
+              </button>
+              <button class="layer-pill" data-layer="illumination" onclick="setMoonLayer('illumination', this)">
+                <span><i data-lucide="sun"></i></span> Solar
+              </button>
+              <button class="layer-pill" data-layer="psr" onclick="setMoonLayer('psr', this)">
+                <span><i data-lucide="moon"></i></span> PSR
+              </button>
+              <button class="layer-pill" data-layer="hazard" onclick="setMoonLayer('hazard', this)">
+                <span><i data-lucide="shield-alert"></i></span> Hazard
+              </button>
+              <button class="layer-pill" data-layer="candidates" onclick="setMoonLayer('candidates', this)">
+                <span><i data-lucide="target"></i></span> Sites
+              </button>
+            </div>
+
+            <!-- Top-right Viewport Controls -->
+            <div class="lunar-vp-controls">
+              <button class="vp-btn" onclick="resetMoonView()" title="Return to Global Overview"><i data-lucide="rotate-ccw"></i> Reset</button>
+              <button class="vp-btn" onclick="focusSouthPole()" title="Focus Lunar South Pole"><i data-lucide="crosshair"></i> Pole</button>
+              <button class="vp-btn" onclick="zoomMoon(1.2)" title="Zoom In"><i data-lucide="plus"></i></button>
+              <button class="vp-btn" onclick="zoomMoon(0.8)" title="Zoom Out"><i data-lucide="minus"></i></button>
+            </div>
+
+            <!-- Bottom-left Lighting HUD -->
+            <div class="lunar-lighting-hud" id="lunarLightingHud">
+              <div class="lighting-hud-row">
+                <span style="font-weight: 700; color: #fff; display: inline-flex; align-items: center; gap: 0.35rem;"><i data-lucide="sun" style="width:14px;height:14px;"></i> Solar Lighting</span>
+                <span id="mcSunAngleReadout" style="font-family: 'JetBrains Mono', monospace; color: var(--color-cyan);">Az 135° | El 12°</span>
+              </div>
+              <div class="lighting-hud-row">
+                <span>Solar Azimuth</span>
+                <span id="valMcSunAz">135°</span>
+              </div>
+              <input type="range" class="lighting-slider" id="sliderMcSunAz" min="0" max="360" step="5" value="135" oninput="updateMoonSunLighting()">
+              <div class="lighting-hud-row" style="margin-top: 0.35rem;">
+                <span>Grazing Elevation</span>
+                <span id="valMcSunEl">12°</span>
+              </div>
+              <input type="range" class="lighting-slider" id="sliderMcSunEl" min="1" max="45" step="1" value="12" oninput="updateMoonSunLighting()">
+            </div>
+
+            <!-- Bottom-right Live Surface Telemetry HUD -->
+            <div class="lunar-telemetry-hud" id="lunarTelemetryHud">
+              <div>LAT: <b id="mcHudLat">-89.9000°</b> | LON: <b id="mcHudLon">0.0000°</b></div>
+              <div>EASTING: <b id="mcHudEasting">0.0 m</b> | NORTHING: <b id="mcHudNorthing">3,032.3 m</b></div>
+              <div style="color: var(--text-secondary); font-size: 0.62rem;">CRS: Polar Stereographic IAU 2015 Sphere</div>
+            </div>
+
+            <!-- Floating Hover Tooltip -->
+            <div id="moonSurfaceTooltip" class="lunar-tooltip">
+              <div class="lunar-tooltip-title" id="mcTooltipTitle">Shackleton Crater</div>
+              <div class="lunar-tooltip-detail" id="mcTooltipCoords">89.9°S, 0.0°E</div>
+              <div class="lunar-tooltip-detail" id="mcTooltipMetrics">Elev: -3000m | Slope: 4.5°</div>
+            </div>
+          </div>
+
+          <!-- Regional Metrics Panel (kept in DOM for JS telemetry synchronization) -->
+          <div class="regional-metrics-panel" id="mcRegionalMetricsPanel" style="display: none;">
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label">Total Mapped</div>
+              <div class="metric-kpi-val"><span id="mcKpiTotal">3,600.0</span> <span style="font-size: 0.65rem;">km²</span></div>
+              <div class="metric-kpi-sub">100% Polar ROI</div>
+            </div>
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label" style="color: var(--color-safe);">Safe Terrain</div>
+              <div class="metric-kpi-val" style="color: var(--color-safe);"><span id="mcKpiSafe">1,248.5</span> <span style="font-size: 0.65rem;">km²</span></div>
+              <div class="metric-kpi-sub" id="mcKpiSafePct">34.7% suitable</div>
+            </div>
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label" style="color: var(--color-caution);">Caution Margin</div>
+              <div class="metric-kpi-val" style="color: var(--color-caution);"><span id="mcKpiCaution">982.1</span> <span style="font-size: 0.65rem;">km²</span></div>
+              <div class="metric-kpi-sub" id="mcKpiCautionPct">27.3% moderate</div>
+            </div>
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label" style="color: var(--color-unsafe);">Unsafe Steep</div>
+              <div class="metric-kpi-val" style="color: var(--color-unsafe);"><span id="mcKpiUnsafe">842.4</span> <span style="font-size: 0.65rem;">km²</span></div>
+              <div class="metric-kpi-sub" id="mcKpiUnsafePct">23.4% rollover</div>
+            </div>
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label" style="color: var(--color-shadow);">Cryogenic PSR</div>
+              <div class="metric-kpi-val" style="color: var(--color-shadow);"><span id="mcKpiPsr">527.0</span> <span style="font-size: 0.65rem;">km²</span></div>
+              <div class="metric-kpi-sub" id="mcKpiPsrPct">14.6% cold trap</div>
+            </div>
+            <div class="metric-kpi-card">
+              <div class="metric-kpi-label" style="color: var(--color-cyan);">Landing Ellipses</div>
+              <div class="metric-kpi-val" style="color: var(--color-cyan);"><span id="mcKpiSites">3</span> <span style="font-size: 0.65rem;">Screened</span></div>
+              <div class="metric-kpi-sub">Sites Alpha, Beta, Gamma</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: Terrain Classification, Candidate-Site Rankings, Illumination & Environment -->
+        <aside class="lunar-col-right">
+          <!-- 1. Terrain Classification -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="shield-check"></i></span> Terrain Safety</div>
+              <span class="status-badge badge-connected" style="font-size: 0.58rem;">DETERMINISTIC</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem;">
+                <span style="color: var(--color-safe); font-weight: 700;">● Safe Landing</span>
+                <span id="mcBarSafeVal" style="font-family: 'JetBrains Mono', monospace; font-size: 0.64rem;">764.6 km² (21.2%)</span>
+              </div>
+              <div class="class-bar-track" style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px;">
+                <div class="class-bar-fill" id="mcBarSafeFill" style="width: 21.2%; background: var(--color-safe); height: 100%; border-radius: 2px;"></div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-top: 0.15rem;">
+                <span style="color: var(--color-caution); font-weight: 700;">● Caution Margin</span>
+                <span id="mcBarCautionVal" style="font-family: 'JetBrains Mono', monospace; font-size: 0.64rem;">1,358.0 km² (37.7%)</span>
+              </div>
+              <div class="class-bar-track" style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px;">
+                <div class="class-bar-fill" id="mcBarCautionFill" style="width: 37.7%; background: var(--color-caution); height: 100%; border-radius: 2px;"></div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-top: 0.15rem;">
+                <span style="color: var(--color-unsafe); font-weight: 700;">● Steep Unsafe</span>
+                <span id="mcBarUnsafeVal" style="font-family: 'JetBrains Mono', monospace; font-size: 0.64rem;">1,372.3 km² (38.1%)</span>
+              </div>
+              <div class="class-bar-track" style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px;">
+                <div class="class-bar-fill" id="mcBarUnsafeFill" style="width: 38.1%; background: var(--color-unsafe); height: 100%; border-radius: 2px;"></div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; margin-top: 0.15rem;">
+                <span style="color: var(--color-shadow); font-weight: 700;">● Shadowed PSR</span>
+                <span id="mcBarPsrVal" style="font-family: 'JetBrains Mono', monospace; font-size: 0.64rem;">252.1 km² (7.0%)</span>
+              </div>
+              <div class="class-bar-track" style="height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px;">
+                <div class="class-bar-fill" id="mcBarPsrFill" style="width: 7.0%; background: var(--color-shadow); height: 100%; border-radius: 2px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Candidate Landing Sites -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="target"></i></span> Candidate Sites</div>
+              <button class="btn btn-secondary" style="padding: 0.12rem 0.35rem; font-size: 0.6rem;" onclick="switchTab('landingSitesTab', document.querySelectorAll('.tab-btn')[5])">All Sites</button>
+            </div>
+            <div id="mcCandidateCardsList" style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <div class="candidate-rank-card" onclick="focusCandidateOnMoon('Alpha')">
+                <div class="candidate-card-top">
+                  <span class="candidate-rank-pill">#1 PRIMARY</span>
+                  <span class="candidate-score">81.6%</span>
+                </div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem;">Site Alpha (Connecting Ridge)</div>
+                <div class="candidate-metrics-row">
+                  <span>Slope: <b>0.33°</b></span>
+                  <span>Clearance: <b>3.2 km</b></span>
+                  <span>Elev: <b>-1,766 m</b></span>
+                </div>
+              </div>
+
+              <div class="candidate-rank-card" onclick="focusCandidateOnMoon('Beta')">
+                <div class="candidate-card-top">
+                  <span class="candidate-rank-pill" style="color: var(--color-caution); border-color: rgba(255, 181, 46, 0.4); background: rgba(255, 181, 46, 0.15);">#2 BACKUP</span>
+                  <span class="candidate-score">79.2%</span>
+                </div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem;">Site Beta (Ridge Flank)</div>
+                <div class="candidate-metrics-row">
+                  <span>Slope: <b>0.35°</b></span>
+                  <span>Clearance: <b>2.9 km</b></span>
+                  <span>Elev: <b>-1,765 m</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Illumination & Environment -->
+          <div class="lunar-card">
+            <div class="lunar-card-header">
+              <div class="lunar-card-title"><span><i data-lucide="sun"></i></span> Solar & Environment</div>
+              <span class="status-badge badge-connected" style="font-size: 0.58rem;">SOUTH POLE</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.68rem; color: var(--text-secondary);">Average Solar Visibility:</span>
+              <span style="font-size: 1.05rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--color-cyan);" id="mcIllumAvgPct">68.4%</span>
+            </div>
+            <div style="background: rgba(19, 42, 60, 0.45); border-radius: 4px; padding: 0.35rem 0.55rem; margin-bottom: 0.4rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.62rem; margin-bottom: 0.2rem;">
+                <span style="color: var(--text-secondary);">Synodic Timeline</span>
+                <span id="mcIllumTimeLabel" style="color: var(--color-cyan); font-family: 'JetBrains Mono', monospace;">T+ 14.2d</span>
+              </div>
+              <input type="range" class="slider-input" id="mcIllumTimeSlider" min="0" max="29.5" step="0.5" value="14.2" oninput="onIllumTimelineChange(this.value)">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem; font-size: 0.62rem; color: var(--text-muted); border-top: 1px solid rgba(145, 165, 186, 0.08); padding-top: 0.3rem;">
+              <div>Temp: <b style="color: var(--text-secondary);">40K – 220K</b></div>
+              <div>Gravity: <b style="color: var(--text-secondary);">1.62 m/s²</b></div>
+            </div>
+          </div>
+        </aside>
+
+      </div>
+
+      <!-- Contextual Lunar Region Drawer -->
+      <aside class="lunar-context-drawer" id="lunarContextDrawer">
+        <div class="drawer-header">
+          <div class="drawer-title">
+            <span><i data-lucide="moon"></i></span> <span id="drawerTitle">Lunar Surface Intelligence</span>
+          </div>
+          <button class="drawer-close-btn" id="btnDrawerClose" onclick="closeLunarContextDrawer(event)" title="Close details" aria-label="Close details" type="button"><i data-lucide="x" style="width:14px;height:14px;pointer-events:none;"></i></button>
+        </div>
+        <div class="drawer-body">
+          <!-- 1. Location -->
+          <div class="drawer-section">
+            <div class="drawer-section-title"><i data-lucide="map-pin"></i> Location & Coverage</div>
+            <div class="drawer-info-grid">
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Latitude</div>
+                <div class="drawer-info-v" id="drawerLat">-89.9000°</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Longitude</div>
+                <div class="drawer-info-v" id="drawerLon">0.0000°</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Easting (m)</div>
+                <div class="drawer-info-v" id="drawerEasting">0.0 m</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Northing (m)</div>
+                <div class="drawer-info-v" id="drawerNorthing">3,032.3 m</div>
+              </div>
+              <div class="drawer-info-item" style="grid-column: 1 / -1;">
+                <div class="drawer-info-lbl">Nearest Named Feature</div>
+                <div class="drawer-info-v" id="drawerFeature">Shackleton Crater (0.0 km)</div>
+              </div>
+              <div class="drawer-info-item" style="grid-column: 1 / -1;">
+                <div class="drawer-info-lbl">Coverage Status</div>
+                <div class="drawer-info-v" id="drawerCoverage">Active High-Resolution LOLA Polar Grid</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Terrain Metrics -->
+          <div class="drawer-section">
+            <div class="drawer-section-title"><i data-lucide="mountain"></i> Terrain & Micro-Relief</div>
+            <div class="drawer-info-grid">
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Elevation</div>
+                <div class="drawer-info-v" id="drawerElev">-1,766.0 m</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Local Slope</div>
+                <div class="drawer-info-v" id="drawerSlope">0.33°</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Roughness (σ)</div>
+                <div class="drawer-info-v" id="drawerRough">1.75 m</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Classification</div>
+                <div class="drawer-info-v" id="drawerClass" style="color: var(--color-safe);">Class 1 (Safe)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Illumination -->
+          <div class="drawer-section">
+            <div class="drawer-section-title"><i data-lucide="sun"></i> Solar Illumination & Cold Traps</div>
+            <div class="drawer-info-grid">
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Average Visibility</div>
+                <div class="drawer-info-v" id="drawerIllum">81.4%</div>
+              </div>
+              <div class="drawer-info-item">
+                <div class="drawer-info-lbl">Permanent Shadow</div>
+                <div class="drawer-info-v" id="drawerPsr">NO (Sunlit Peak)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Safety Assessment -->
+          <div class="drawer-section">
+            <div class="drawer-section-title"><i data-lucide="shield-check"></i> Safety Assessment</div>
+            <div style="background: rgba(19, 42, 60, 0.45); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; font-size: 0.7rem; line-height: 1.45;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span style="color: var(--text-secondary);">Suitability Score S = 1 - H:</span>
+                <span style="font-size: 1rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: var(--color-safe);" id="drawerScore">81.6%</span>
+              </div>
+              <div id="drawerCriteriaList" style="color: var(--text-muted); font-size: 0.66rem;">
+                [PASS] Slope &lt; 5.0°<br>
+                [PASS] Roughness footpad clearance &lt; 5.0m<br>
+                [PASS] Standoff clearance from steep cliffs &gt; 40m<br>
+                [PASS] Non-cryogenic sunlit surface
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Data Provenance -->
+          <div class="drawer-section">
+            <div class="drawer-section-title"><i data-lucide="file-text"></i> Data Provenance</div>
+            <div style="font-size: 0.66rem; color: var(--text-muted); line-height: 1.45; background: rgba(19, 42, 60, 0.45); padding: 0.6rem 0.75rem; border-radius: var(--radius-sm);">
+              <div>Dataset: <b style="color: var(--text-secondary);" id="drawerDataset">Real NASA LRO LOLA DEM</b></div>
+              <div>Publisher: <span id="drawerPublisher">NASA PDS Geosciences Node / MIT</span></div>
+              <div>CRS: <span>IAU 2015 Lunar Polar Stereographic</span></div>
+              <div>Resolution: <span id="drawerResolution">240.0 m/px</span></div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; font-weight: 700; padding: 0.55rem;" onclick="openSiteInspectionModal(selectedLunarLocation?.site_id || selectedLunarLocation?.feature_name, selectedLunarLocation)">
+              <span><i data-lucide="orbit"></i></span> Inspect 3D Site Model
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="openSelectedIn2DStudio()">
+                <span><i data-lucide="map"></i></span> 2D Studio
+              </button>
+              <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="openSelectedIn3DTopography()">
+                <span><i data-lucide="orbit"></i></span> 3D Transect
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 1: SAFETY THRESHOLDS & SCREENING SETTINGS -->
+    <!-- =================================================================== -->
+    <div id="controlTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-controlTab" tabindex="0">
+      <div class="dashboard-grid">
+        
+        <!-- Left: Controls & Thresholds Panel -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2><span><i data-lucide="sliders"></i></span> Safety Thresholds & Criteria</h2>
+            <button class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.72rem;" onclick="resetDefaults()"><i data-lucide="rotate-ccw"></i> Reset to Baseline</button>
+          </div>
+
+          <!-- Screening Criteria Disclaimer Banner -->
+          <div class="screening-disclaimer-card">
+            <span><i data-lucide="alert-triangle"></i></span>
+            <div>
+              <b>Screening Criteria Only:</b> Thresholds are rule-based screening parameters for landing site candidate prioritization, not vehicle flight margins.
+            </div>
+          </div>
+
+          <!-- Preset Profiles -->
+          <div style="margin-bottom: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.35rem; font-weight: 600; text-transform: uppercase;">
+              <span>Mission Profile Presets</span>
+              <span id="activePresetBadge" style="color: var(--color-cyan); text-transform: none; font-weight: 400;">Nominal Baseline</span>
+            </div>
+            <div class="presets-row">
+              <button class="preset-btn" id="presetConservative" onclick="applyPreset('conservative')">
+                <span><i data-lucide="shield"></i></span> Conservative
+              </button>
+              <button class="preset-btn" id="presetRover" onclick="applyPreset('rover')">
+                <span><i data-lucide="navigation"></i></span> Rover
+              </button>
+              <button class="preset-btn" id="presetRelaxed" onclick="applyPreset('relaxed')">
+                <span><i data-lucide="sliders"></i></span> Relaxed
+              </button>
+            </div>
+          </div>
+
+          <!-- Slope & Roughness Controls (Two-Column Grid) -->
+          <div class="controls-two-col">
+            <div class="control-group">
+              <div class="control-label">
+                <span>Safe Slope Limit <span class="info-tip" title="Slopes below this threshold provide maximum stability against lander tip-over or downslope slip. Screening value, not flight safety limit."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valSlopeSafe">5.0</span>°</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderSlopeSafe" min="2" max="10" step="0.5" value="5.0" oninput="onParamChange()">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Caution Slope Limit <span class="info-tip" title="Slopes between safe and caution require active thruster attitude modulation. Screening value."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valSlopeCaution">10.0</span>°</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderSlopeCaution" min="6" max="18" step="0.5" value="10.0" oninput="onParamChange()">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Hard Unsafe Slope <span class="info-tip" title="Slopes exceeding this trigger immediate hard Unsafe (Class 3) classification due to landing gear rollover risk. Hard physical override."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valSlopeHard">15.0</span>°</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderSlopeHard" min="10" max="25" step="0.5" value="15.0" oninput="onParamChange()">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Safe Roughness (σ) <span class="info-tip" title="Surface micro-relief and boulder heights within lander footpad clearance envelope (< 1.5 m). Screening value."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valRoughSafe">1.5</span> m</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderRoughSafe" min="0.5" max="3.0" step="0.1" value="1.5" oninput="onParamChange()">
+            </div>
+
+            <div class="control-group" style="grid-column: 1 / -1;">
+              <div class="control-label">
+                <span>Hard Unsafe Roughness Override <span class="info-tip" title="Micro-roughness exceeding this causes catastrophic chassis or engine collision. Hard physical override."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valRoughHard">5.0</span> m</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderRoughHard" min="3.0" max="8.0" step="0.2" value="5.0" oninput="onParamChange()">
+            </div>
+          </div>
+
+          <!-- Multi-criteria Weights (Auto-normalizing to 1.0) -->
+          <div class="panel-header" style="margin-top: 1rem;">
+            <h2><span><i data-lucide="sliders-horizontal"></i></span> Screening Weights (Auto-Normalized)</h2>
+            <span id="weightSumBadge" class="status-badge badge-connected" style="font-size: 0.65rem;">Σ = 1.00</span>
+          </div>
+
+          <!-- Live Formula with KaTeX -->
+          <div id="katexFormula" class="katex-formula-box">
+            <!-- Rendered dynamically by KaTeX engine -->
+          </div>
+
+          <div class="weights-three-col">
+            <div class="control-group">
+              <div class="control-label">
+                <span>Slope Ws <span class="info-tip" title="Normalized weighting factor for slope gradient in multi-criteria index H. Auto-normalizes to sum = 1.0."><i data-lucide="info"></i></span></span>
+                <span class="control-val" id="valWeightSlope">0.50</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderWeightSlope" min="0.05" max="0.85" step="0.01" value="0.50" oninput="onWeightChange('slope')">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Roughness Wr <span class="info-tip" title="Normalized weighting factor for micro-relief standard deviation in multi-criteria index H."><i data-lucide="info"></i></span></span>
+                <span class="control-val" id="valWeightRough">0.30</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderWeightRough" min="0.05" max="0.85" step="0.01" value="0.30" oninput="onWeightChange('rough')">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Shadow Wd <span class="info-tip" title="Weighting for shadow obscuration in screening suitability index H."><i data-lucide="info"></i></span></span>
+                <span class="control-val" id="valWeightShadow">0.20</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderWeightShadow" min="0.00" max="0.70" step="0.01" value="0.20" oninput="onWeightChange('shadow')">
+            </div>
+          </div>
+
+          <!-- Change vs Baseline Delta Summary Box -->
+          <div class="delta-summary-box" id="baselineDeltaBox">
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.66rem; text-transform: uppercase;">Change vs Baseline:</span>
+              <div id="deltaSummaryText" style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #38bdf8;">Unsafe: Δ 0.00 km² | Safe: Δ 0.00 km²</div>
+            </div>
+            <span class="status-badge badge-connected" style="font-size: 0.65rem;" id="baselineStatusChip">NOMINAL</span>
+          </div>
+
+          <!-- Rule-Consistency Live Badge -->
+          <div style="margin: 0.8rem 0; display: flex; align-items: center; justify-content: space-between;">
+            <div id="ruleConsistencyBadge" class="rule-badge badge-pass">
+              <span><i data-lucide="shield-check"></i></span> RULE CONSISTENCY: PASS (0 VIOLATIONS)
+            </div>
+            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.68rem;" onclick="openAuditModal()">Audit Details</button>
+          </div>
+
+          <!-- Readable Class Rules Table -->
+          <div style="margin-top: 0.8rem;">
+            <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.35rem;">
+              Deterministic Classification Rules Table
+            </div>
+            <table class="rules-summary-table">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Classification Condition</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="rulesTableBody">
+                <tr>
+                  <td><span style="color: var(--color-safe); font-weight: bold;">Class 1 (Safe)</span></td>
+                  <td>Slope &lt; <span id="tblRuleSafeSlope">5.0</span>°, Roughness &lt; <span id="tblRuleSafeRough">1.5</span>m, H &lt; 0.25, Non-PSR</td>
+                  <td><span class="status-badge badge-connected" style="font-size: 0.6rem;">OPERATIONAL</span></td>
+                </tr>
+                <tr>
+                  <td><span style="color: var(--color-caution); font-weight: bold;">Class 2 (Caution)</span></td>
+                  <td>0.25 ≤ H &lt; 0.60, non-override, sunlit</td>
+                  <td><span class="status-badge badge-caution" style="font-size: 0.6rem;">MODERATE</span></td>
+                </tr>
+                <tr>
+                  <td><span style="color: var(--color-unsafe); font-weight: bold;">Class 3 (Unsafe)</span></td>
+                  <td>Slope ≥ <span id="tblRuleHardSlope">15.0</span>° OR Roughness ≥ <span id="tblRuleHardRough">5.0</span>m OR H ≥ 0.60</td>
+                  <td><span class="status-badge badge-synthetic" style="font-size: 0.6rem;">OVERRIDE</span></td>
+                </tr>
+                <tr>
+                  <td><span style="color: var(--color-shadow); font-weight: bold;">Class 4 (Shadowed)</span></td>
+                  <td>PSR Shadow (psr = 1) AND non-steep (Slope &lt; <span id="tblRuleShadowSlope">15.0</span>°)</td>
+                  <td><span class="status-badge" style="background: rgba(142,68,173,0.25); color: #c084fc; font-size: 0.6rem;">UNKNOWN</span></td>
+                </tr>
+                <tr>
+                  <td><span style="color: var(--text-muted); font-weight: bold;">Class 0 (NoData)</span></td>
+                  <td>DEM missing/invalid (≤ -9999). Strictly preserved, never Safe.</td>
+                  <td><span class="status-badge" style="background: rgba(51,65,85,0.3); color: var(--text-muted); font-size: 0.6rem;">PROTECTED</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Real-Time Interactive Hazard Preview Canvas -->
+          <div class="preview-hazard-container">
+            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 0.4rem; font-size: 0.72rem;">
+              <span style="color: var(--text-secondary); font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;"><i data-lucide="zap" style="width:13px;height:13px;"></i> Instant Live Hazard Preview</span>
+              <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="switchTab('mapStudioTab', document.querySelectorAll('.tab-btn')[1])">
+                <span><i data-lucide="map"></i></span> Open in 2D Studio
+              </button>
+            </div>
+            <canvas id="controlHazardPreview" width="200" height="200"></canvas>
+            <div style="font-size: 0.66rem; color: var(--text-muted); margin-top: 0.35rem;">
+              Real-time in-memory downsampled preview &bull; 0 ms lag
+            </div>
+          </div>
+
+          <!-- Landing Ellipse Settings -->
+          <div class="panel-header" style="margin-top: 1rem;">
+            <h2><span><i data-lucide="target"></i></span> Rule-Based Screening Constraints</h2>
+          </div>
+
+          <div class="controls-two-col">
+            <div class="control-group">
+              <div class="control-label">
+                <span>Landing Ellipse Radius <span class="info-tip" title="Radius of lander touchdown error ellipse (100 m standard Artemis envelope)."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valEllipseRadius">100</span> m</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderEllipseRadius" min="40" max="250" step="10" value="100" oninput="onParamChange()">
+            </div>
+
+            <div class="control-group">
+              <div class="control-label">
+                <span>Obstacle Clearance <span class="info-tip" title="Minimum clearance distance from any Unsafe or Shadowed pixel."><i data-lucide="info"></i></span></span>
+                <span class="control-val"><span id="valClearance">40</span> m</span>
+              </div>
+              <input type="range" class="slider-input" id="sliderClearance" min="20" max="100" step="5" value="40" oninput="onParamChange()">
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem;">
+            <button class="btn btn-primary" style="justify-content: center;" onclick="triggerRunPipeline()">
+              <span><i data-lucide="play"></i></span> Run Full Pipeline
+            </button>
+            <button class="btn btn-secondary" style="justify-content: center;" onclick="recalculateFast()">
+              <span><i data-lucide="zap"></i></span> Force Recalculate
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Sensitivity Analysis & Dataset Management & Terminal -->
+        <div>
+          <!-- Sensitivity Analysis Panel -->
+          <div class="glass-panel" style="margin-bottom: 1.25rem;">
+            <div class="panel-header">
+              <h2><span><i data-lucide="line-chart"></i></span> Sensitivity Analysis & Slope Margins</h2>
+              <span class="status-badge badge-connected" style="font-size: 0.66rem;">REAL-TIME EVALUATION</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+              Live full-grid recomputation from the active dataset — both charts and the KPI ribbon update as you drag the threshold sliders (client preview, then authoritative server recalculation).
+            </div>
+
+            <div class="sensitivity-grid">
+              <!-- Chart 1: Class Areas at 5°, 10°, 15° -->
+              <div class="chart-card">
+                <h3>
+                  <span>Class Areas at 5°, 10° & 15° Slope Limits</span>
+                  <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: normal;">km² breakdown</span>
+                </h3>
+                <canvas id="chartSensitivityBars" class="chart-canvas" width="340" height="180"></canvas>
+              </div>
+
+              <!-- Chart 2: Unsafe Area vs Slope Threshold Curve -->
+              <div class="chart-card">
+                <h3>
+                  <span>Unsafe Area vs. Slope Threshold</span>
+                  <span id="chartActiveSlopeIndicator" style="font-size: 0.68rem; color: var(--color-unsafe); font-family: 'JetBrains Mono', monospace;">Target: 15°</span>
+                </h3>
+                <canvas id="chartSensitivityCurve" class="chart-canvas" width="340" height="180"></canvas>
+              </div>
+            </div>
+          </div>
+          <!-- Dataset Selector Panel -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2><span><i data-lucide="database"></i></span> Lunar Topography Datasets</h2>
+              <span class="status-badge badge-synthetic" id="persistentSyntheticTag">SYNTHETIC DEMO</span>
+            </div>
+
+            <div class="dataset-picker">
+              <div class="dataset-card" id="cardLola" onclick="selectDataset('lola')">
+                <div>
+                  <div class="dataset-title">Real NASA LRO LOLA (80°S – 90°S) DEM</div>
+                  <div class="dataset-desc">Planetary Data System 240 m/pixel regional polar DEM and shadow mask (60 km × 60 km).</div>
+                </div>
+                <button class="btn btn-primary" id="btnIngestLola" style="padding: 0.35rem 0.75rem; font-size: 0.72rem;" onclick="downloadLolaDataset(event)">
+                  <span><i data-lucide="download"></i></span> Ingest NASA LRO LOLA
+                </button>
+              </div>
+            </div>
+
+            <!-- Download Progress Bar -->
+            <div id="downloadProgressContainer" style="display: none; margin-top: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.74rem; margin-bottom: 0.3rem;">
+                <span id="downloadStatusText">Downloading USGS LOLA DEM...</span>
+                <span id="downloadPctText" style="font-weight: 700; color: var(--color-cyan);">0%</span>
+              </div>
+              <div class="kpi-progress">
+                <div class="kpi-progress-bar" id="downloadProgressBar" style="width: 0%; background: var(--color-cyan);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 2: 2D GEOSPATIAL STUDIO -->
+    <!-- =================================================================== -->
+    <div id="mapStudioTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-mapStudioTab" tabindex="0">
+      <div class="studio-layout">
+        
+        <!-- Left/Main: Interactive Canvas Viewport & Controls -->
+        <div class="canvas-container">
+          <!-- Top Main Toolbar -->
+          <div class="canvas-toolbar">
+            <div class="toolbar-group">
+              <button class="tool-btn active" id="btnToolPan" onclick="setStudioTool('pan')" title="Pan & Zoom Mode"><span><i data-lucide="hand"></i></span> Pan</button>
+              <button class="tool-btn" id="btnToolInspect" onclick="setStudioTool('inspect')" title="Pixel Inspector Mode"><span><i data-lucide="crosshair"></i></span> Inspect</button>
+              <button class="tool-btn" id="btnToolRegion" onclick="setStudioTool('region')" title="Draw AOI Bounding Box for Statistics"><span><i data-lucide="square-dashed"></i></span> Region AOI</button>
+              <button class="tool-btn" id="btnToolSwipe" onclick="setStudioTool('swipe')" title="Swipe / Compare Slider Mode"><span><i data-lucide="split"></i></span> Swipe Compare</button>
+            </div>
+
+            <div class="toolbar-group">
+              <button class="tool-btn" id="btnZoomIn" onclick="zoomMap(1.25)" title="Zoom In"><i data-lucide="zoom-in"></i></button>
+              <button class="tool-btn" id="btnZoomOut" onclick="zoomMap(0.8)" title="Zoom Out"><i data-lucide="zoom-out"></i></button>
+              <button class="tool-btn" id="btnResetView" onclick="resetCanvasView()" title="Fit Raster to Viewport"><span><i data-lucide="rotate-ccw"></i></span> Reset View</button>
+              <button class="tool-btn" id="btnExportPng" onclick="exportCurrentViewAsPng()" title="Export Current View as High-Res PNG with Cartographic Legend & Scale Bar"><span><i data-lucide="camera"></i></span> Export PNG</button>
+            </div>
+          </div>
+
+          <!-- Secondary Swipe Control Bar (Visible when in Swipe mode) -->
+          <div class="swipe-bar-container hidden" id="swipeControlBar">
+            <span style="font-weight: 700; color: var(--color-cyan); display: flex; align-items: center; gap: 0.35rem;">
+              <span><i data-lucide="split"></i></span> Compare Layers:
+            </span>
+            <select id="swipePreset" class="preset-select" style="background: rgba(30,41,59,0.8); border: 1px solid var(--border-subtle); color: #fff; padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.72rem;" onchange="onSwipePresetChange()">
+              <option value="hazard_vs_hillshade">Hazard Classification vs. Hillshade</option>
+              <option value="psr_ref_vs_output">PSR Reference vs. Pipeline Output</option>
+              <option value="slope_vs_hazard">Slope Gradient vs. Hazard Classification</option>
+            </select>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; max-width: 320px;">
+              <span style="font-size: 0.68rem; color: var(--text-muted);">Split:</span>
+              <input type="range" id="swipeSlider" min="0" max="100" value="50" class="layer-opacity-slider" oninput="onSwipeSliderInput(this.value)">
+              <span id="swipePctLabel" style="font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--color-cyan);">50%</span>
+            </div>
+          </div>
+
+          <!-- Canvas Viewport Wrapper -->
+          <div class="canvas-wrapper" id="canvasWrapper">
+            <!-- Main Rendering Canvas -->
+            <canvas id="mapCanvas" width="400" height="400" tabindex="0" role="application" aria-label="Interactive Lunar Geospatial 2D Map Canvas" aria-describedby="mapCanvasSummary"></canvas>
+            <div id="mapCanvasSummary" class="sr-only">
+              Interactive lunar geospatial 2D studio canvas. Keyboard navigation: Arrow keys pan the viewport. Plus and minus keys zoom in and out. Shift plus Arrow keys step the pixel inspector one cell. Enter pins the inspector at the current coordinate. Escape clears the pinned inspector. Left and right square brackets cycle through active raster layers.
+            </div>
+
+            <!-- Loading Skeleton (removed once the raster bundle arrives) -->
+            <div class="map-skeleton active" id="mapSkeleton">
+              <div class="skeleton-block skeleton-block-lg"></div>
+              <div class="skeleton-block skeleton-block-md"></div>
+              <span>Loading lunar raster telemetry…</span>
+            </div>
+
+            <!-- CRS & Pixel Size Floating Badge -->
+            <div class="crs-badge-overlay" id="crsBadgeOverlay">
+              <span style="color: var(--color-cyan); display: inline-flex; align-items: center;"><i data-lucide="globe"></i></span>
+              <span id="crsBadgeText">Moon Polar Stereographic (IAU 2015, R=1,737,400m) | 20.0 m/px</span>
+            </div>
+
+            <!-- Grid North Compass Arrow -->
+            <div class="north-arrow-overlay" id="northArrowOverlay" title="Lunar Polar Stereographic Grid North (+Y)">
+              <div class="north-arrow-icon"></div>
+              <div class="north-arrow-label">GRID NORTH (+Y)</div>
+            </div>
+
+            <!-- Dynamic Cartographic Scale Bar -->
+            <div class="scale-bar-overlay" id="scaleBarOverlay">
+              <div class="scale-bar-line" id="scaleBarLine" style="width: 80px;"></div>
+              <div class="scale-bar-text" id="scaleBarText">1,000 m</div>
+            </div>
+
+            <!-- Minimap Container -->
+            <div class="minimap-overlay" id="minimapOverlay" onclick="onMinimapClick(event)" title="Click or drag to pan">
+              <div class="minimap-header">
+                <span>MINIMAP</span>
+                <span id="minimapZoomLevel" style="color: var(--color-cyan);">1.0x</span>
+              </div>
+              <canvas id="minimapCanvas" width="120" height="120"></canvas>
+            </div>
+
+            <!-- Swipe Side Badges (Visible during swipe) -->
+            <div class="swipe-labels-overlay hidden" id="swipeLabelsOverlay">
+              <span class="swipe-tag" id="swipeLeftTag">LEFT: 5-Class Hazard</span>
+              <span class="swipe-tag" id="swipeRightTag">RIGHT: Hillshade</span>
+            </div>
+
+            <!-- Pixel Inspector Floating Popup Card -->
+            <div class="inspector-popup hidden" id="inspectorPopup">
+              <div class="popup-header">
+                <span class="popup-title"><span><i data-lucide="crosshair"></i></span> Pixel Inspector <span id="popupPixelCoords">[0, 0]</span></span>
+                <button class="popup-close-btn" onclick="closeInspectorPopup()">×</button>
+              </div>
+              <div class="popup-grid">
+                <div class="popup-field">
+                  <span class="popup-label">Easting (X)</span>
+                  <span class="popup-val" id="popupEasting">+0.0 m</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">Northing (Y)</span>
+                  <span class="popup-val" id="popupNorthing">+0.0 m</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">Elevation (Z)</span>
+                  <span class="popup-val" id="popupElev">-2500.0 m</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">Slope Angle</span>
+                  <span class="popup-val" id="popupSlope">3.8°</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">Roughness (σ)</span>
+                  <span class="popup-val" id="popupRough">0.45 m</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">PSR Shadow</span>
+                  <span class="popup-val" id="popupPsr">NO (Sunlit)</span>
+                </div>
+                <div class="popup-field">
+                  <span class="popup-label">Avg Illumination</span>
+                  <span class="popup-val" id="popupIllum">—</span>
+                </div>
+              </div>
+              <div style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.65rem; color: var(--text-muted);">Hazard Classification:</span>
+                <span class="status-badge" id="popupClassBadge" style="font-size: 0.68rem; font-weight: 700; background: var(--color-safe); color: #020409;">SAFE (Class 1)</span>
+              </div>
+              <div class="plain-reason-card" id="popupPlainReason">
+                Safe: slope 3.8° (&lt; 5.0°), roughness 0.45 m (&lt; 1.5 m), sunlit terrain outside PSR.
+              </div>
+            </div>
+
+            <!-- AOI Statistics Floating Card -->
+            <div class="aoi-stats-card hidden" id="aoiStatsCard">
+              <div class="popup-header">
+                <span class="popup-title"><span><i data-lucide="ruler"></i></span> Region Statistics (AOI)</span>
+                <button class="popup-close-btn" onclick="closeAoiStatsCard()">×</button>
+              </div>
+              <div style="font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.5rem;" id="aoiExtentsLabel">
+                Extents: X [+0 m, +0 m] | Y [+0 m, +0 m]
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.65rem; background: rgba(30,41,59,0.5); padding: 0.45rem; border-radius: var(--radius-sm);">
+                <div>
+                  <span style="font-size: 0.62rem; color: var(--text-muted); display: block;">Total AOI Area</span>
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--color-cyan);" id="aoiAreaTotal">0.0 km²</span>
+                </div>
+                <div>
+                  <span style="font-size: 0.62rem; color: var(--text-muted); display: block;">Sample Pixels</span>
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-primary);" id="aoiPixelTotal">0 px</span>
+                </div>
+                <div>
+                  <span style="font-size: 0.62rem; color: var(--text-muted); display: block;">Mean Slope</span>
+                  <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-primary);" id="aoiMeanSlope">0.0°</span>
+                </div>
+                <div>
+                  <span style="font-size: 0.62rem; color: var(--text-muted); display: block;">Mean Roughness</span>
+                  <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-primary);" id="aoiMeanRough">0.0 m</span>
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.7rem; margin-bottom: 0.65rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 8px; height: 8px; border-radius: 2px; background: var(--color-safe);"></span> Safe:</span>
+                  <span style="font-weight: 700; color: var(--color-safe);" id="aoiSafeVal">0.0 km² (0.0%)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 8px; height: 8px; border-radius: 2px; background: var(--color-caution);"></span> Caution:</span>
+                  <span style="font-weight: 700; color: var(--color-caution);" id="aoiCautionVal">0.0 km² (0.0%)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 8px; height: 8px; border-radius: 2px; background: var(--color-unsafe);"></span> Unsafe:</span>
+                  <span style="font-weight: 700; color: var(--color-unsafe);" id="aoiUnsafeVal">0.0 km² (0.0%)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="display: flex; align-items: center; gap: 0.35rem;"><span style="width: 8px; height: 8px; border-radius: 2px; background: var(--color-shadow);"></span> Shadowed:</span>
+                  <span style="font-weight: 700; color: var(--color-shadow);" id="aoiShadowVal">0.0 km² (0.0%)</span>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary" style="width: 100%; padding: 0.35rem; font-size: 0.7rem;" onclick="clearAoiSelection()">Clear Selection</button>
+            </div>
+          </div>
+
+          <!-- Bottom Telemetry Status Bar -->
+          <div class="map-status-bar" id="mapStatusBar">
+            <div class="status-metric-group">
+              <span class="status-item"><span class="lbl">CRS:</span> <span class="val">IAU 2015 Sphere R=1,737,400m</span></span>
+              <span class="status-item"><span class="lbl">Cursor:</span> <span class="val" id="sbCursor">[0, 0]</span></span>
+              <span class="status-item"><span class="lbl">X:</span> <span class="val" id="sbEasting">+0.0 m</span></span>
+              <span class="status-item"><span class="lbl">Y:</span> <span class="val" id="sbNorthing">+0.0 m</span></span>
+            </div>
+            <div class="status-metric-group">
+              <span class="status-item"><span class="lbl">Elev:</span> <span class="val" id="sbElev">-2500.0 m</span></span>
+              <span class="status-item"><span class="lbl">Slope:</span> <span class="val" id="sbSlope">0.0°</span></span>
+              <span class="status-item"><span class="lbl">Rough:</span> <span class="val" id="sbRough">0.0 m</span></span>
+              <span class="status-item"><span class="lbl">PSR:</span> <span class="val" id="sbPsr">No</span></span>
+              <span class="status-item"><span class="lbl">Class:</span> <span class="val" id="sbClass" style="color: var(--color-safe);">Safe</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Side: Layer Controls, Inspector HUD & Legend -->
+        <div class="studio-sidebar" style="display: flex; flex-direction: column; gap: 1.25rem;">
+          
+          <!-- Layer Stack & Opacity Controls -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2><span><i data-lucide="layers"></i></span> Layer Stack & Opacity</h2>
+              <span style="font-size: 0.65rem; color: var(--text-muted);">COMPOSITING</span>
+            </div>
+
+            <div class="layer-stack-list">
+              <!-- Hazard Classification -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerHazard" checked onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: var(--color-safe);"></span>
+                    <span>Hazard Map (hazard_classes.tif)</span>
+                  </label>
+                  <span id="lblOpacityHazard" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">100%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityHazard" min="0" max="100" value="100" oninput="onOpacityChange('hazard', this.value)">
+                </div>
+              </div>
+
+              <!-- Elevation / Hillshade -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerHillshade" checked onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: #94a3b8;"></span>
+                    <span>Elevation & Hillshade</span>
+                  </label>
+                  <span id="lblOpacityHillshade" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">70%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityHillshade" min="0" max="100" value="70" oninput="onOpacityChange('hillshade', this.value)">
+                </div>
+              </div>
+
+              <!-- Slope -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerSlope" onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: var(--color-caution);"></span>
+                    <span>Slope Gradient (slope_deg.tif)</span>
+                  </label>
+                  <span id="lblOpacitySlope" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">80%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacitySlope" min="0" max="100" value="80" oninput="onOpacityChange('slope', this.value)">
+                </div>
+              </div>
+
+              <!-- Roughness -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerRoughness" onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: #c084fc;"></span>
+                    <span>Roughness σ (roughness_std_m.tif)</span>
+                  </label>
+                  <span id="lblOpacityRoughness" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">80%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityRoughness" min="0" max="100" value="80" oninput="onOpacityChange('roughness', this.value)">
+                </div>
+              </div>
+
+              <!-- Average Illumination Fraction (published AVGVISIB, Mazarico et al. 2011) -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerIllum" onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: #fbbf24;"></span>
+                    <span>Avg Illumination (AVGVISIB)</span>
+                  </label>
+                  <span id="lblOpacityIllum" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">80%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityIllum" min="0" max="100" value="80" oninput="onOpacityChange('illumination', this.value)">
+                </div>
+              </div>
+
+              <!-- PSR Polygons / Mask with thin white vector outline -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerPsr" checked onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: var(--color-shadow); border: 1px solid #ffffff;"></span>
+                    <span>PSR Polygons (White Outlines)</span>
+                  </label>
+                  <span id="lblOpacityPsr" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">90%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityPsr" min="0" max="100" value="90" oninput="onOpacityChange('psr', this.value)">
+                </div>
+              </div>
+
+              <!-- Candidate Landing Sites Overlay -->
+              <div class="layer-row">
+                <div class="layer-row-header">
+                  <label class="layer-label-group">
+                    <input type="checkbox" id="chkLayerEllipses" checked onchange="onLayerToggle()">
+                    <span class="layer-color-dot" style="background: var(--color-cyan);"></span>
+                    <span>Candidate Landing Ellipses (100m)</span>
+                  </label>
+                  <span id="lblOpacityEllipses" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);">100%</span>
+                </div>
+                <div class="layer-slider-group">
+                  <span>Opacity</span>
+                  <input type="range" class="layer-opacity-slider" id="sliderOpacityEllipses" min="0" max="100" value="100" oninput="onOpacityChange('ellipses', this.value)">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lunar Day Illumination Time Slider (Phase 4 — analytic model) -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2><span><i data-lucide="sun"></i></span> Lunar Day Illumination</h2>
+              <span class="status-badge badge-synthetic" style="font-size: 0.6rem;" id="illumTimeBadge">ANALYTIC MODEL</span>
+            </div>
+            <div id="illumTimeBody">
+              <div class="time-slider-row">
+                <button class="btn btn-secondary time-play-btn" id="btnPlayDay" onclick="toggleIllumPlayback()" title="Play/Pause lunar day" aria-label="Play or pause lunar day animation" disabled>▶</button>
+                <input type="range" id="timeSlider" min="0" max="23" step="1" value="0" oninput="onTimeFrameChange(this.value)" disabled aria-label="Lunar local time frame">
+              </div>
+              <div class="time-frame-label" id="timeFrameLabel">Loading model frames…</div>
+              <label class="time-overlay-label">
+                <input type="checkbox" id="chkTimeOverlay" onchange="onTimeOverlayToggle()" disabled>
+                <span>Show modeled shadow on map</span>
+              </label>
+              <div class="time-disclaimer" id="timeDisclaimer">
+                Analytic model: solar position + DEM horizon ray-trace over one lunar day. Not a time-resolved measurement — the published LPSR mask remains the authoritative permanent-shadow product.
+              </div>
+            </div>
+          </div>
+
+          <!-- Pinned Telemetry Inspector -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2><span><i data-lucide="crosshair"></i></span> Pixel Telemetry Inspector</h2>
+              <span class="status-badge badge-connected" style="font-size: 0.65rem;" id="hudTrackingStatus">LIVE TRACKING</span>
+            </div>
+
+            <div class="inspector-box">
+              <div class="telemetry-row">
+                <span class="telemetry-label">Lunar Easting (X)</span>
+                <span class="telemetry-val" id="hudEasting">+0.0 m</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Lunar Northing (Y)</span>
+                <span class="telemetry-val" id="hudNorthing">+0.0 m</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Elevation (Z)</span>
+                <span class="telemetry-val" id="hudElevation">-2650.0 m</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Slope Angle</span>
+                <span class="telemetry-val" id="hudSlope">4.2°</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Roughness (σ)</span>
+                <span class="telemetry-val" id="hudRoughness">1.42 m</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Permanently Shadowed</span>
+                <span class="telemetry-val" id="hudPsr">NO (Sunlit)</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Avg Illumination</span>
+                <span class="telemetry-val" id="hudIllum">—</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="telemetry-label">Hazard Zone</span>
+                <span class="telemetry-val" id="hudClass" style="color: var(--color-safe); font-weight: 700;">SAFE (Class 1)</span>
+              </div>
+            </div>
+
+            <!-- Plain-language explanation box in sidebar -->
+            <div style="margin-top: 0.75rem;">
+              <span style="font-size: 0.64rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">CLASSIFICATION RATIONALE:</span>
+              <div class="plain-reason-card" id="hudPlainReason">
+                Safe: slope 4.2° (&lt; 5.0°), roughness 1.42 m (&lt; 1.5 m), sunlit terrain outside PSR.
+              </div>
+            </div>
+          </div>
+
+          <!-- Color Ramp Legend with FIXED HAZARD COLORS and LIVE AREA TOTALS -->
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h2><span><i data-lucide="palette"></i></span> Hazard Classification Legend</h2>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.76rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="width: 20px; height: 20px; border-radius: 4px; background: var(--color-safe); color: #020409; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.4);" aria-hidden="true"><i data-lucide="check" style="width:12px;height:12px;stroke-width:3px;"></i></span>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <b>Class 1: Safe</b>
+                      <span style="font-size: 0.62rem; font-weight: 700; color: var(--color-safe); background: rgba(41,229,154,0.14); border: 1px solid var(--color-safe); padding: 1px 4px; border-radius: 3px;">[SAFE]</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.66rem;">Slope &lt; 5°, Roughness &lt; 1.5m</div>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--color-safe);" id="legendAreaSafe">-- km²</div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="width: 20px; height: 20px; border-radius: 4px; background: var(--color-caution); color: #020409; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 10px; flex-shrink: 0; border: 1.5px dashed #020409;" aria-hidden="true"><i data-lucide="alert-triangle" style="width:12px;height:12px;stroke-width:2.5px;"></i></span>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <b>Class 2: Caution</b>
+                      <span style="font-size: 0.62rem; font-weight: 700; color: var(--color-caution); background: rgba(255,181,46,0.14); border: 1px dashed var(--color-caution); padding: 1px 4px; border-radius: 3px;">[CAUTION]</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.66rem;">0.25 ≤ H &lt; 0.60 Transition</div>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--color-caution);" id="legendAreaCaution">-- km²</div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="width: 20px; height: 20px; border-radius: 4px; background: var(--color-unsafe); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; border: 2px solid #ffffff;" aria-hidden="true"><i data-lucide="x" style="width:12px;height:12px;stroke-width:3px;"></i></span>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <b>Class 3: Unsafe</b>
+                      <span style="font-size: 0.62rem; font-weight: 700; color: var(--color-unsafe); background: rgba(255,82,99,0.14); border: 1px solid var(--color-unsafe); padding: 1px 4px; border-radius: 3px;">[UNSAFE]</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.66rem;">Slope ≥ 15° or Roughness ≥ 5.0m</div>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--color-unsafe);" id="legendAreaUnsafe">-- km²</div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="width: 20px; height: 20px; border-radius: 4px; background: var(--color-shadow); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; border: 1.5px dotted #ffffff;" aria-hidden="true"><i data-lucide="moon" style="width:12px;height:12px;stroke-width:2.5px;"></i></span>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <b>Class 4: Shadowed-Unknown</b>
+                      <span style="font-size: 0.62rem; font-weight: 700; color: var(--color-shadow); background: rgba(155,123,255,0.14); border: 1px dotted var(--color-shadow); padding: 1px 4px; border-radius: 3px;">[SHADOW]</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.66rem;">PSR Shadow, Non-steep</div>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--color-shadow);" id="legendAreaShadow">-- km²</div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                  <span style="width: 20px; height: 20px; border-radius: 4px; background: var(--color-nodata); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 11px; flex-shrink: 0; border: 1px solid var(--border-subtle);" aria-hidden="true"><i data-lucide="ban" style="width:12px;height:12px;stroke-width:2.5px;"></i></span>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <b>Class 0: NoData</b>
+                      <span style="font-size: 0.62rem; font-weight: 700; color: var(--text-muted); background: rgba(34,52,70,0.4); border: 1px solid var(--border-subtle); padding: 1px 4px; border-radius: 3px;">[NODATA / ⊘]</span>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 0.66rem;">Missing elevation / border</div>
+                  </div>
+                </div>
+                <div style="text-align: right; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; color: var(--text-muted);" id="legendAreaNodata">-- km²</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 3: 3D LUNAR TOPOGRAPHY EXPLORER -->
+    <!-- =================================================================== -->
+    <div id="terrain3dTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-terrain3dTab" tabindex="0">
+      <!-- 3D Toolbar -->
+      <div class="three-toolbar">
+        <div class="three-toolbar-group">
+          <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Texture:</label>
+          <select id="select3dTexture" style="padding: 0.35rem 0.6rem; background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-subtle); color: #fff; border-radius: 4px; font-size: 0.76rem;" onchange="update3dTexture()">
+            <option value="hazard">Hazard Class Colors</option>
+            <option value="slope">Slope Heatmap</option>
+            <option value="roughness">Roughness Heatmap</option>
+            <option value="hillshade">Hillshade (Shaded Relief)</option>
+            <option value="dem">DEM Hypsometric</option>
+          </select>
+          <button id="btn3dWireframe" class="three-btn-toggle" onclick="toggle3dWireframe()">
+            <span><i data-lucide="grid"></i></span> Wireframe
+          </button>
+          <button id="btn3dPsr" class="three-btn-toggle active" onclick="toggle3dPsrOutlines()">
+            <span><i data-lucide="moon"></i></span> Raised PSR Outlines
+          </button>
+          <button id="btn3dCrossSection" class="three-btn-toggle" onclick="toggle3dCrossSectionTool()">
+            <span><i data-lucide="ruler"></i></span> Transect Profile
+          </button>
+          <button id="btn3dRoverSim" class="three-btn-toggle" onclick="toggleRoverSimulator()">
+            <span><i data-lucide="navigation"></i></span> Rover Simulator
+          </button>
+        </div>
+
+        <div class="three-toolbar-group">
+          <button id="btn3dResetCam" class="three-btn-toggle" onclick="reset3dCamera()">
+            <span><i data-lucide="rotate-ccw"></i></span> Reset Camera
+          </button>
+          <button class="three-btn-toggle" onclick="capture3dSnapshot()">
+            <span><i data-lucide="camera"></i></span> 3D Snapshot
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D Viewport Container -->
+      <div class="three-container" id="threeContainerWrapper">
+        <!-- Overlay Controls Panel -->
+        <div class="three-overlay-controls">
+          <h3 style="font-size: 0.88rem; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 0.4rem;"><span><i data-lucide="sun"></i></span> Sun & Terrain Lighting</span>
+            <button class="btn-minimize-toggle" id="btnMinimize3dLighting" onclick="toggle3dLightingPanel()" title="Minimize / Expand Lighting Controls">−</button>
+          </h3>
+
+          <div class="control-group" style="margin-bottom: 0.65rem;">
+            <div class="control-label">
+              <span>Vertical Exaggeration</span>
+              <span class="control-val"><span id="val3dExag">2.5</span>x</span>
+            </div>
+            <input type="range" class="slider-input" id="slider3dExag" min="1" max="5" step="0.25" value="2.5" oninput="update3dExaggeration()">
+          </div>
+
+          <div class="control-group" style="margin-bottom: 0.65rem;">
+            <div class="control-label">
+              <span>Sun Azimuth</span>
+              <span class="control-val"><span id="val3dAzimuth">135</span>°</span>
+            </div>
+            <input type="range" class="slider-input" id="slider3dAzimuth" min="0" max="360" step="5" value="135" oninput="update3dSun()">
+          </div>
+
+          <div class="control-group" style="margin-bottom: 0.65rem;">
+            <div class="control-label">
+              <span>Sun Elevation (Grazing Angle)</span>
+              <span class="control-val"><span id="val3dElevation">12</span>°</span>
+            </div>
+            <input type="range" class="slider-input" id="slider3dElevation" min="1" max="60" step="1" value="12" oninput="update3dSun()">
+          </div>
+
+          <!-- Mandatory Exact Label -->
+          <div class="sun-disclaimer-note">
+            <div style="font-weight: 700; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.2rem;">
+              <span><i data-lucide="alert-triangle"></i></span> Illumination Preview
+            </div>
+            Instantaneous illumination preview. Permanent shadow requires analysis over a full illumination cycle.
+          </div>
+        </div>
+
+        <!-- Floating 3D Inspector Card -->
+        <div id="threeInspectorCard" class="three-inspector-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.3rem;">
+            <span style="font-size: 0.76rem; font-weight: 700; color: #00e5ff; display: flex; align-items: center; gap: 0.35rem;">
+              <span><i data-lucide="crosshair"></i></span> 3D Surface Inspector
+            </span>
+            <button onclick="close3dInspector()" style="background: none; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; font-size: 0.72rem; margin-bottom: 0.45rem;">
+            <div><span style="color: #64748b;">Easting:</span> <b id="val3dEasting">-- m</b></div>
+            <div><span style="color: #64748b;">Northing:</span> <b id="val3dNorthing">-- m</b></div>
+            <div><span style="color: #64748b;">Elevation:</span> <b id="val3dElev" style="color: #38bdf8;">-- m</b></div>
+            <div><span style="color: #64748b;">Slope:</span> <b id="val3dSlope" style="color: #f59e0b;">--°</b></div>
+            <div><span style="color: #64748b;">Roughness:</span> <b id="val3dRough">-- m</b></div>
+            <div><span style="color: #64748b;">PSR:</span> <b id="val3dPsr">--</b></div>
+          </div>
+          <div style="margin-bottom: 0.4rem;">
+            <span id="badge3dClass" class="status-badge" style="display: inline-block; padding: 0.2rem 0.5rem; font-size: 0.7rem; font-weight: 700; border-radius: 4px;">--</span>
+          </div>
+          <div id="val3dReason" style="font-size: 0.68rem; color: #94a3b8; line-height: 1.35; background: rgba(0,0,0,0.3); padding: 0.4rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);">
+            Click on 3D terrain to inspect local slope, roughness, and safety criteria.
+          </div>
+        </div>
+
+        <!-- Floating Cross-Section Transect Card -->
+        <div id="threeCrossSectionCard" class="three-cross-section-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.35rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #00e5ff;"><i data-lucide="ruler" style="width:14px;height:14px;"></i> Elevation Transect Profile</span>
+              <span id="transectStatusTag" class="status-badge badge-synthetic" style="font-size: 0.65rem;">Click 2 points on terrain</span>
+            </div>
+            <div style="display: flex; gap: 0.4rem;">
+              <button class="three-btn-toggle" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="clearCrossSection()">Clear</button>
+              <button class="three-btn-toggle" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="closeCrossSection()"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+            </div>
+          </div>
+          
+          <div style="display: flex; gap: 0.85rem; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.4rem; flex-wrap: wrap;">
+            <div>Length: <b id="transectLength" style="color: #fff;">-- m</b></div>
+            <div>Min Elev: <b id="transectMinElev" style="color: #38bdf8;">-- m</b></div>
+            <div>Max Elev: <b id="transectMaxElev" style="color: #38bdf8;">-- m</b></div>
+            <div>Δ Elev: <b id="transectDeltaElev" style="color: #fff;">-- m</b></div>
+            <div>Mean Slope: <b id="transectMeanSlope" style="color: #f59e0b;">--°</b></div>
+            <div>Max Slope: <b id="transectMaxSlope" style="color: #ef4444;">--°</b></div>
+            <div>PSR Exposure: <b id="transectPsrDist" style="color: #c084fc;">-- m</b></div>
+          </div>
+
+          <canvas id="profileChartCanvas" class="profile-chart-canvas" width="490" height="150"></canvas>
+
+          <div id="transectHoverInfo" style="font-size: 0.68rem; color: #64748b; font-family: monospace; display: flex; justify-content: space-between;">
+            <span>Hover profile to inspect point telemetry</span>
+            <span id="transectReadout" style="color: #00e5ff;">--</span>
+          </div>
+        </div>
+
+        <!-- Floating 3D Rover Autonomous Decision-Making Intelligence Box -->
+        <div id="roverDecisionBox" class="rover-decision-box">
+          <div class="decision-box-header">
+            <div class="decision-box-title">
+              <span class="decision-pulse-dot"></span>
+              <span>Autonomous Guidance Core</span>
+            </div>
+            <div class="decision-box-actions">
+              <span id="decisionActionBadge" class="decision-action-badge badge-cruise">CRUISING</span>
+              <button class="decision-box-toggle" id="btnToggleDecisionBox" onclick="toggleDecisionBoxMin()" title="Minimize / Expand Decision Box">−</button>
+            </div>
+          </div>
+
+          <div id="decisionBoxBody" class="decision-box-body">
+            <!-- Active Tactical Decision Summary -->
+            <div class="decision-thought-card">
+              <div class="decision-thought-label">
+                <i data-lucide="cpu"></i> Active Tactical Decision
+              </div>
+              <div id="decisionThoughtText" class="decision-thought-text">
+                Autonomous path planner locked: Optimal low-gradient traverse corridor active.
+              </div>
+            </div>
+
+            <!-- Real-time Autonomous Decision Telemetry Grid -->
+            <div class="decision-grid">
+              <div class="decision-metric">
+                <span class="decision-lbl"><i data-lucide="navigation"></i> Nav Mode</span>
+                <span class="decision-val" id="decNavMode">Optimal A*</span>
+              </div>
+              <div class="decision-metric">
+                <span class="decision-lbl"><i data-lucide="shield-check"></i> Hazard Margin</span>
+                <span class="decision-val" id="decObstacleMargin" style="color: #34d399;">Clear (>25m)</span>
+              </div>
+              <div class="decision-metric">
+                <span class="decision-lbl"><i data-lucide="trending-up"></i> Slope Safety</span>
+                <span class="decision-val" id="decSlopeSafety" style="color: #34d399;">Nominal (4.2°)</span>
+              </div>
+              <div class="decision-metric">
+                <span class="decision-lbl"><i data-lucide="disc"></i> Traction Slip</span>
+                <span class="decision-val" id="decWheelSlip">1.2% (Norm)</span>
+              </div>
+            </div>
+
+            <!-- Live Scrolling Decision Stream Log -->
+            <div class="decision-feed-container">
+              <div class="decision-feed-header">
+                <span><i data-lucide="activity"></i> Live Reasoning Stream</span>
+                <span id="decDecisionRate" style="color: #64748b; font-size: 0.62rem; font-family: monospace;">T-Tick: 10 Hz</span>
+              </div>
+              <div id="decisionFeedList" class="decision-feed-list">
+                <div class="decision-feed-item"><span class="dec-time">[T+00:00]</span> Surface route initialized. All 6 rocker-bogie drives nominal.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating 3D Rover Mission Simulator Cockpit HUD -->
+        <div id="roverSimulatorHud" class="three-rover-sim-hud">
+          <!-- Top Bar: Status, Mission Name, Camera Modes, Close -->
+          <div class="sim-header-row">
+            <div class="sim-title-group">
+              <span class="sim-badge-live"><span class="sim-badge-dot"></span> Rover Telemetry Simulator</span>
+              <span id="simRouteTitle" style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">Autonomous Lunar Traverse</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div class="sim-cam-group">
+                <button class="sim-cam-btn active" id="btnCamFollow" onclick="setRoverCamMode('follow')" title="Chase Camera (Follows behind rover)">
+                  <i data-lucide="video"></i> Follow
+                </button>
+                <button class="sim-cam-btn" id="btnCamCockpit" onclick="setRoverCamMode('cockpit')" title="NavCam Driver Cockpit View">
+                  <i data-lucide="eye"></i> NavCam
+                </button>
+                <button class="sim-cam-btn" id="btnCamTop" onclick="setRoverCamMode('top')" title="Top-Down Orbital Cam">
+                  <i data-lucide="orbit"></i> Top-Down
+                </button>
+                <button class="sim-cam-btn" id="btnCamFree" onclick="setRoverCamMode('free')" title="Free Orbit Camera">
+                  <i data-lucide="move-3d"></i> Free Orbit
+                </button>
+              </div>
+              <button onclick="toggleRoverSimulator(false)" style="background: none; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center;" title="Close Simulator"><i data-lucide="x" style="width:15px;height:15px;"></i></button>
+            </div>
+          </div>
+
+          <!-- Telemetry Metrics Grid -->
+          <div class="sim-metrics-grid">
+            <div class="sim-metric-card">
+              <div class="sim-metric-lbl"><i data-lucide="gauge"></i> Speed & Odo</div>
+              <div class="sim-metric-val"><span id="simValSpeed" style="color:#10b981;">0.10</span> <span style="font-size:0.6rem;color:#64748b;">m/s</span> · <span id="simValOdo">0</span>m</div>
+            </div>
+            <div class="sim-metric-card">
+              <div class="sim-metric-lbl"><i data-lucide="compass"></i> Inclinometer</div>
+              <div class="sim-metric-val"><span id="simValPitch">0.0°</span> · <span id="simValRoll">0.0°</span></div>
+            </div>
+            <div class="sim-metric-card">
+              <div class="sim-metric-lbl"><i data-lucide="battery-charging"></i> Battery SoC</div>
+              <div class="sim-metric-val"><span id="simValSoc" style="color:#06b6d4;">100%</span> <span id="simValPower" style="font-size:0.6rem;color:#10b981;">+Draw</span></div>
+            </div>
+            <div class="sim-metric-card">
+              <div class="sim-metric-lbl"><i data-lucide="sun"></i> Environment</div>
+              <div class="sim-metric-val" id="simValEnvironment" style="color:#f59e0b;">Sunlit (+115°C)</div>
+            </div>
+            <div class="sim-metric-card">
+              <div class="sim-metric-lbl"><i data-lucide="flag"></i> Waypoint</div>
+              <div class="sim-metric-val"><span id="simValWpIndex">WP 1</span> / <span id="simValWpTotal">--</span></div>
+            </div>
+          </div>
+
+          <!-- Scrubber Track & Elapsed Time -->
+          <div class="sim-scrubber-row">
+            <span id="simTimeElapsed" class="sim-time-text">00:00:00</span>
+            <input type="range" class="sim-scrubber" id="roverSimScrubber" min="0" max="1000" value="0" oninput="onRoverSimScrub(this.value)">
+            <span id="simTimeTotal" class="sim-time-text">09:30:00</span>
+          </div>
+
+          <!-- Controls: Play/Pause, Rewind, Speed, Headlights Toggle -->
+          <div class="sim-controls-row">
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <button class="sim-play-btn" id="btnRoverSimPlay" onclick="toggleRoverSimPlayback()">
+                <i data-lucide="play" id="iconRoverSimPlay"></i> <span id="labelRoverSimPlay">Start Traverse</span>
+              </button>
+              <button class="sim-sec-btn" onclick="rewindRoverSim()" title="Rewind to Start">
+                <i data-lucide="rotate-ccw"></i> Rewind
+              </button>
+              <button class="sim-sec-btn" id="btnToggleHeadlights" onclick="toggleRoverHeadlights()" title="Toggle Rover LED Headlights">
+                <i data-lucide="flashlight"></i> Lights
+              </button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span style="font-size: 0.65rem; color: #64748b; font-weight: 600;">SPEED:</span>
+              <div class="sim-speed-selector">
+                <button class="sim-speed-pill active" onclick="setRoverSimSpeed(1.0, this)">1x</button>
+                <button class="sim-speed-pill" onclick="setRoverSimSpeed(2.0, this)">2x</button>
+                <button class="sim-speed-pill" onclick="setRoverSimSpeed(5.0, this)">5x</button>
+                <button class="sim-speed-pill" onclick="setRoverSimSpeed(10.0, this)">10x</button>
+                <button class="sim-speed-pill" onclick="setRoverSimSpeed(25.0, this)">25x</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WebGL Context Loss / Low-End GPU Fallback Banner -->
+        <div id="webglFallbackBanner" class="three-fallback-banner">
+          <div style="margin-bottom: 0.4rem; display: flex; justify-content: center;"><i data-lucide="alert-triangle" style="width:36px;height:36px;color:#f59e0b;"></i></div>
+          <h4 id="webglFallbackTitle" style="font-weight: 700; margin-bottom: 0.4rem; color: #f87171;">WebGL Acceleration Unavailable</h4>
+          <p id="webglFallbackMsg" style="font-size: 0.78rem; line-height: 1.4; margin-bottom: 1rem; color: #cbd5e1;">
+            WebGL 3D graphics context was lost or is not supported by your GPU/browser. Use the 2D Geospatial Studio for complete raster telemetry.
+          </p>
+          <button class="btn btn-primary" onclick="retry3dContext()" style="margin: 0 auto; font-size: 0.75rem;">
+            <i data-lucide="rotate-ccw"></i> Attempt 3D Context Restore
+          </button>
+        </div>
+
+        <!-- Three.js Canvas Mount -->
+        <div id="threeCanvas" tabindex="0" role="application" aria-label="3D Lunar Topography WebGL Terrain Explorer" aria-describedby="threeCanvasSummary"></div>
+        <div id="threeCanvasSummary" class="sr-only">
+          3D WebGL lunar terrain explorer. Keyboard controls: Arrow keys orbit the camera view around the lunar site. Plus and minus keys zoom in and out. Q and E keys rotate the solar azimuth grazing illumination angle.
+        </div>
+        <div id="threeA11yStatus" class="sr-only" aria-live="polite">3D Lunar terrain ready.</div>
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 4: CANDIDATE SITE SCREENING INTEL -->
+    <!-- =================================================================== -->
+    <div id="landingSitesTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-landingSitesTab" tabindex="0">
+      <div style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800;">Candidate Site Ranking (Rule-Based)</h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">Deterministic multi-criteria candidate landing ellipse evaluation based on slope, roughness, illumination, and obstacle clearance.</p>
+        </div>
+        <button class="btn btn-primary" onclick="recalculateFast()">
+          <span><i data-lucide="refresh-cw"></i></span> Re-Screen Candidates
+        </button>
+      </div>
+
+      <!-- Candidate Site Ranking Formula Card (Defect 5) -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-cyan);">
+        <h3 style="font-size: 0.92rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span><i data-lucide="ruler"></i></span> Candidate Site Ranking Formula (Rule-Based)
+        </h3>
+        <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem;">
+          Landing suitability is evaluated deterministically using the inverted multi-criteria hazard screening index across each landing ellipse:
+        </p>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--color-cyan); margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: rgba(0, 229, 255, 0.06); border-radius: 4px; border: 1px solid rgba(0, 229, 255, 0.2);">
+          Suitability Score: S = 1.0 - H &nbsp;&nbsp;|&nbsp;&nbsp; H = Ws·(Slope / 15°) + Wr·(Roughness / 5.0m) + Wd·ShadowFraction
+        </div>
+        <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+          Deterministic Screening Constraints: 100% of candidate landing ellipse area must satisfy Slope &lt; 5.0°, Local Roughness &lt; 1.5 m, PSR standoff &gt; 40 m buffer, and zero intersection with Unsafe (Class 3) or Shadowed (Class 4) terrain.
+        </p>
+      </div>
+
+      <!-- Landing Site Comparison (Phase 4) -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-safe);" id="siteComparePanel">
+        <div class="panel-header">
+          <h3 style="font-size: 0.95rem;"><i data-lucide="scale" style="width:15px;height:15px;"></i> Compare Landing Candidates (2–3 sites)</h3>
+          <span class="status-badge badge-connected" style="font-size: 0.62rem;" id="compareCountBadge">0 SELECTED</span>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+          Pick up to three candidates below (or add the currently inspected pixel). Metrics are computed live from the active dataset inside each 100 m landing ellipse.
+        </div>
+        <div class="compare-select-row" id="compareSelectRow"><!-- populated by app.js --></div>
+        <div id="compareTableWrap" class="hidden">
+          <table class="compare-table" id="compareTable">
+            <thead><tr id="compareTableHead"></tr></thead>
+            <tbody id="compareTableBody"></tbody>
+          </table>
+          <div class="compare-verdict" id="compareVerdict"></div>
+        </div>
+        <div id="compareEmpty" style="font-size: 0.72rem; color: var(--text-muted); padding: 0.5rem 0;">
+          No candidates selected yet.
+        </div>
+      </div>
+
+      <div class="sites-grid" id="sitesGrid">
+        <!-- Rendered dynamically from real outputs/landing_sites.json by app.js -->
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 4: VALIDATION & SCIENCE METRICS (Requirement 1) -->
+    <!-- =================================================================== -->
+    <div id="validationTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-validationTab" tabindex="0">
+      <div style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800;">Validation & Science Metrics</h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">Rigorous quality assurance, ground-truth provenance verification, 5-class area telemetry, and sensitivity analysis.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="checkPsrValidation(false)">
+            <span><i data-lucide="refresh-cw"></i></span> Refresh Validation
+          </button>
+          <button class="btn btn-primary" onclick="openAuditModal()">
+            <span><i data-lucide="shield-check"></i></span> Re-Run 9-Point Audit
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Dataset Reconciled Banner (Fix 1) -->
+      <div class="val-dataset-banner" id="valDatasetBanner">
+        <div class="val-banner-info">
+          <div class="val-banner-title">
+            <span id="valDatasetName">REAL NASA LRO LOLA (South Pole)</span>
+            <span class="status-badge badge-connected" id="valDatasetTypeTag">PRODUCTION</span>
+          </div>
+          <div class="val-banner-sub" id="valDatasetMeta">
+            NASA Planetary Data System (LRO LOLA GDR) · 240.0 m/px · 250 × 250 px · 3,600.00 km² Total Extent
+          </div>
+        </div>
+        <div class="val-consistency-alert" id="valConsistencyAlert">
+          <span><i data-lucide="check-circle-2"></i></span> <span id="valConsistencyText">Area Parity: 62,500 px × 0.0576 km²/px = 3,600.00 km² (Verified)</span>
+        </div>
+      </div>
+
+      <!-- Truthful NASA LRO LOLA Provenance & Scientific Methodology (Fix 3) -->
+      <div class="provenance-note-card" id="psrProvenanceCard">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="display:inline-flex;align-items:center;"><i data-lucide="satellite"></i></span>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--color-cyan); margin: 0;">
+              LOLA Permanent Shadow Regions (LPSR) Provenance & Resolution Notice
+            </h4>
+          </div>
+          <span class="status-badge badge-connected" id="psrNoticeBadge" style="font-size: 0.65rem;">NASA PDS GROUND BENCHMARK</span>
+        </div>
+        <p style="font-size: 0.78rem; line-height: 1.5; color: #cbd5e1; margin-bottom: 0.75rem;" id="psrNoticeDesc">
+          The operational PSR layer is directly ingested from the published NASA LRO LOLA LPSR (LOLA Permanent Shadow Regions, 240 m/px, 80°S–90°S) dataset. Because the pipeline's operational PSR layer <i>is</i> the published NASA reference benchmark itself, evaluating self-agreement yields an identity (IoU = 1.0, Precision = 1.0, Recall = 1.0) rather than an independent predictive accuracy metric. In-situ volatile verification requires ground prospecting (VIPER/Artemis) <span class="pnc-tag-verify">VERIFY</span>.
+        </p>
+        <div class="pnc-grid">
+          <div class="pnc-item">
+            <div class="pnc-label">Ingested Source</div>
+            <div class="pnc-value" style="font-size: 0.78rem;" id="pncSource">NASA LRO LOLA LPSR_65S_240M</div>
+          </div>
+          <div class="pnc-item">
+            <div class="pnc-label">Spatial Resolution</div>
+            <div class="pnc-value" id="pncResolution">240 m / px</div>
+          </div>
+          <div class="pnc-item">
+            <div class="pnc-label">PSR Spatial Extent</div>
+            <div class="pnc-value" id="pncArea">232.93 km²</div>
+          </div>
+          <div class="pnc-item">
+            <div class="pnc-label">Cold-Trap Fraction</div>
+            <div class="pnc-value" id="pncFraction">6.47% Polar AOI</div>
+          </div>
+        </div>
+        <div style="margin-top: 0.65rem; font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <span>Known Limitations: Sub-pixel micro-shadows (&lt;240 m) unresolvable <span class="pnc-tag-verify">VERIFY</span></span>
+          <span>· Seasonal solar precession horizon changes (&lt;1.54°) <span class="pnc-tag-verify">VERIFY</span></span>
+          <button class="btn btn-secondary" id="btnBenchmarkToggle" style="padding: 0.2rem 0.5rem; font-size: 0.68rem; margin-left: auto;" onclick="checkPsrValidation(true)">
+            <span><i data-lucide="flask-conical"></i></span> Run Benchmark Calibration
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Class Area Table -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem;">
+        <div class="panel-header">
+          <h2><span><i data-lucide="bar-chart-2"></i></span> Quantitative Area Breakdown</h2>
+          <span style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--color-cyan);" id="valTotalAreaSum">3,600.00 km² TOTAL</span>
+        </div>
+        <div class="table-responsive">
+          <table class="rule-table" id="tblValidationClasses">
+            <thead>
+              <tr>
+                <th>Hazard Class</th>
+                <th>Classification Criteria</th>
+                <th>Pixel Count</th>
+                <th>Area (km²)</th>
+                <th>% Valid Terrain</th>
+                <th>% Total Raster</th>
+              </tr>
+            </thead>
+            <tbody id="bodyValidationClasses">
+              <!-- Dynamically populated from outputs/hazard_summary.csv by app.js -->
+              <tr>
+                <td><span style="color: var(--color-safe); font-weight: bold;">Class 1: Safe</span></td>
+                <td>Slope &lt; 5.0°, Roughness &lt; 1.5m, H &lt; 0.25, Non-PSR</td>
+                <td style="font-family: var(--font-mono);">10,833 px</td>
+                <td style="font-family: var(--font-mono);">623.98 km²</td>
+                <td><span class="tag-pass">17.3%</span></td>
+                <td>17.3%</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-caution); font-weight: bold;">Class 2: Caution</span></td>
+                <td>0.25 ≤ H &lt; 0.60, non-override, sunlit</td>
+                <td style="font-family: var(--font-mono);">23,792 px</td>
+                <td style="font-family: var(--font-mono);">1,370.42 km²</td>
+                <td><span class="status-badge badge-caution">38.1%</span></td>
+                <td>38.1%</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-unsafe); font-weight: bold;">Class 3: Unsafe</span></td>
+                <td>Slope ≥ 15.0° OR Roughness ≥ 5.0m OR H ≥ 0.60</td>
+                <td style="font-family: var(--font-mono);">23,825 px</td>
+                <td style="font-family: var(--font-mono);">1,372.32 km²</td>
+                <td><span class="tag-fail">38.1%</span></td>
+                <td>38.1%</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-shadow); font-weight: bold;">Class 4: Shadowed-Unknown</span></td>
+                <td>PSR Shadow (psr = 1) AND non-steep (Slope &lt; 15.0°)</td>
+                <td style="font-family: var(--font-mono);">4,044 px</td>
+                <td style="font-family: var(--font-mono);">232.93 km²</td>
+                <td><span class="status-badge" style="background: rgba(142,68,173,0.25); color: #c084fc;">6.5%</span></td>
+                <td>6.5%</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--text-muted); font-weight: bold;">Class 0: NoData</span></td>
+                <td>DEM elevation missing/invalid (≤ -9999.0)</td>
+                <td style="font-family: var(--font-mono);">6 px</td>
+                <td style="font-family: var(--font-mono);">0.35 km²</td>
+                <td>--</td>
+                <td>0.01%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 3. Sensitivity Charts (Requirement 1: class areas at slope thresholds 5°, 10°, 15° and unsafe curve) -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem;">
+        <div class="panel-header">
+          <h2><span><i data-lucide="line-chart"></i></span> Slope-Threshold Sensitivity Analysis</h2>
+          <span style="font-size: 0.68rem; color: var(--text-secondary);">DETERMINISTIC MARGIN SIMULATION</span>
+        </div>
+        <div class="sensitivity-grid">
+          <!-- Stacked Bar Chart -->
+          <div class="chart-card">
+            <h3>
+              <span>Class Areas at 5°, 10° & 15° Slope Limits</span>
+              <span style="color: var(--color-cyan); font-size: 0.65rem;">STACKED %</span>
+            </h3>
+            <canvas id="canvasSensitivityBars" class="chart-canvas" width="460" height="190"></canvas>
+            <div style="display: flex; justify-content: center; gap: 0.75rem; font-size: 0.68rem; margin-top: 0.4rem; flex-wrap: wrap;">
+              <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: var(--color-safe); border-radius: 2px;"></span> Safe</span>
+              <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: var(--color-caution); border-radius: 2px;"></span> Caution</span>
+              <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: var(--color-unsafe); border-radius: 2px;"></span> Unsafe</span>
+              <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width: 8px; height: 8px; background: var(--color-shadow); border-radius: 2px;"></span> Shadowed</span>
+            </div>
+          </div>
+
+          <!-- Unsafe Area Curve -->
+          <div class="chart-card">
+            <h3>
+              <span>Unsafe Area (km²) vs. Slope Threshold</span>
+              <span style="color: #ef4444; font-size: 0.65rem;">HARD OVERRIDE</span>
+            </h3>
+            <canvas id="canvasSensitivityCurve" class="chart-canvas" width="460" height="190"></canvas>
+            <div style="font-size: 0.66rem; color: var(--text-muted); text-align: center; margin-top: 0.4rem;">
+              Simulates slope limits from 3° to 25° showing non-linear increase in hazardous terrain.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 9-Point Mathematical Rule Audit Table -->
+      <div class="glass-panel">
+        <div class="panel-header">
+          <h2><span><i data-lucide="shield-check"></i></span> 9-Point Deterministic Rule Consistency Audit</h2>
+          <span class="status-badge badge-connected" id="validationAuditPill">PASSED (0 VIOLATIONS)</span>
+        </div>
+        <div class="table-responsive">
+          <table class="rule-table" id="validationRuleTable">
+            <thead>
+              <tr>
+                <th>Rule ID</th>
+                <th>Safety Criterion Description</th>
+                <th>Violations</th>
+                <th>Audit Status</th>
+              </tr>
+            </thead>
+            <tbody id="valRuleTableBody">
+              <tr>
+                <td>Rule 1</td>
+                <td>Safe pixel slope must strictly be below Safe Slope Limit (&lt; 5.0°)</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 2</td>
+                <td>Safe pixel roughness must strictly be below Safe Roughness Limit (&lt; 1.5 m)</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 3</td>
+                <td>Safe pixel multi-criteria screening score H must be strictly below 0.25</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 4</td>
+                <td>No Safe pixel may be located within a Permanently Shadowed Region (PSR)</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 5</td>
+                <td>Hard Slope Override: Any pixel with slope ≥ 15.0° is strictly Unsafe</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 6</td>
+                <td>Hard Roughness Override: Any pixel with roughness ≥ 5.0 m is strictly Unsafe</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 7</td>
+                <td>Hazard Score Override: Any pixel with screening score H ≥ 0.60 is strictly Unsafe</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 8</td>
+                <td>Permanently Shadowed terrain (psr=1) is strictly Shadowed-Unknown or Unsafe</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+              <tr>
+                <td>Rule 9</td>
+                <td>NoData missing elevation pixels strictly remain Class 0 (Never classified as Safe)</td>
+                <td>0</td>
+                <td><span class="tag-pass">PASSED</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 5: DATA INGESTION & PRE-FLIGHT (Requirement 2) -->
+    <!-- =================================================================== -->
+    <div id="dataTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-dataTab" tabindex="0" style="display: none !important;">
+      <div style="margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800;">Data Ingestion & Pre-Flight Validation</h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">Upload mission GeoTIFF rasters, verify Lunar CRS alignment and NoData values, inspect pre-flight checklist, and run the pipeline.</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="loadOfflineDemo()" title="Instantly loads precomputed outputs without waiting for pipeline run">
+            <span><i data-lucide="archive"></i></span> Load Offline Demo
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Dropzones -->
+      <div class="upload-grid">
+        <!-- DEM Upload -->
+        <div class="upload-dropzone" id="dropzoneDem" onclick="document.getElementById('inputUploadDem').click()">
+          <input type="file" id="inputUploadDem" accept=".tif,.tiff" style="display: none;" onchange="handleFileSelected(this, 'dem')">
+          <div class="upload-dropzone-icon"><i data-lucide="mountain" style="width:36px;height:36px;color:#38bdf8;"></i></div>
+          <div class="upload-dropzone-title">Upload Digital Elevation Model (DEM)</div>
+          <div class="upload-dropzone-desc">Drag & drop or select a 32-bit float GeoTIFF containing Lunar South Pole altimetry in meters.</div>
+          <span class="status-badge badge-connected" id="badgeDemFile" style="font-size: 0.68rem;">READY: real_lola_dem.tif</span>
+        </div>
+
+        <!-- PSR Upload -->
+        <div class="upload-dropzone" id="dropzonePsr" onclick="document.getElementById('inputUploadPsr').click()">
+          <input type="file" id="inputUploadPsr" accept=".tif,.tiff" style="display: none;" onchange="handleFileSelected(this, 'psr')">
+          <div class="upload-dropzone-icon"><i data-lucide="moon" style="width:36px;height:36px;color:#a855f7;"></i></div>
+          <div class="upload-dropzone-title">Upload PSR Binary Mask GeoTIFF</div>
+          <div class="upload-dropzone-desc">Drag & drop or select an 8-bit GeoTIFF (1 = Shadowed cold-trap, 0 = Sunlit terrain) matching DEM extents.</div>
+          <span class="status-badge badge-connected" id="badgePsrFile" style="font-size: 0.68rem;">READY: real_psr_binary.tif</span>
+        </div>
+      </div>
+
+      <!-- Pre-Flight Checklist Card (Requirement 2) -->
+      <div class="preflight-card">
+        <div class="panel-header" style="margin-bottom: 0.35rem;">
+          <h2><span><i data-lucide="clipboard-check"></i></span> Flight Certification Pre-Flight Checklist</h2>
+          <span class="status-badge badge-connected" id="preflightStatusBadge">ALL CHECKS PASSED</span>
+        </div>
+        <p style="font-size: 0.74rem; color: var(--text-secondary);">Automated geometric, spatial, and cartographic verification before executing mission hazard screening:</p>
+
+        <div class="checklist-list">
+          <div class="checklist-item">
+            <span class="checklist-label">
+              <span id="chkIconCrs" style="color: var(--color-safe); display:inline-flex; align-items:center;"><i data-lucide="check" style="width:14px;height:14px;"></i></span>
+              <span>Coordinate Reference System: Moon South Pole Polar Stereographic (IAU 2015 Sphere R=1,737,400m)</span>
+            </span>
+            <span class="checklist-status" style="color: var(--color-safe);" id="chkStatusCrs">VERIFIED</span>
+          </div>
+
+          <div class="checklist-item">
+            <span class="checklist-label">
+              <span id="chkIconGrid" style="color: var(--color-safe); display:inline-flex; align-items:center;"><i data-lucide="check" style="width:14px;height:14px;"></i></span>
+              <span>Grid Spatial Dimensions & Resolution: 250 × 250 px (62,500 px @ 240.0 m/px)</span>
+            </span>
+            <span class="checklist-status" style="color: var(--color-safe);" id="chkStatusGrid">MATCHED</span>
+          </div>
+
+          <div class="checklist-item">
+            <span class="checklist-label">
+              <span id="chkIconNodata" style="color: var(--color-safe); display:inline-flex; align-items:center;"><i data-lucide="check" style="width:14px;height:14px;"></i></span>
+              <span>NoData Mask Integrity: Value -9999.0 defined; zero boundary bleeding into operational Safe zones</span>
+            </span>
+            <span class="checklist-status" style="color: var(--color-safe);" id="chkStatusNodata">VALIDATED</span>
+          </div>
+
+          <div class="checklist-item">
+            <span class="checklist-label">
+              <span id="chkIconAlignment" style="color: var(--color-safe); display:inline-flex; align-items:center;"><i data-lucide="check" style="width:14px;height:14px;"></i></span>
+              <span>DEM & PSR Co-Registration: Affine bounding transform matrices exactly identical</span>
+            </span>
+            <span class="checklist-status" style="color: var(--color-safe);" id="chkStatusAlignment">CO-REGISTERED</span>
+          </div>
+
+          <div class="checklist-item">
+            <span class="checklist-label">
+              <span id="chkIconDeriv" style="color: var(--color-safe); display:inline-flex; align-items:center;"><i data-lucide="check" style="width:14px;height:14px;"></i></span>
+              <span>Topographic Derivatives: Horn (1981) central finite difference operator derivability test</span>
+            </span>
+            <span class="checklist-status" style="color: var(--color-safe);" id="chkStatusDeriv">PASSED</span>
+          </div>
+        </div>
+
+        <!-- Action Row -->
+        <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="triggerRunPipeline()" id="btnRunPipelineDataTab">
+              <span><i data-lucide="play"></i></span> Run Complete Pipeline
+            </button>
+            <button class="btn btn-secondary" onclick="validateRastersPreflight()">
+              <span><i data-lucide="search"></i></span> Re-Validate Rasters
+            </button>
+            <button class="btn btn-secondary" onclick="loadOfflineDemo()">
+              <span><i data-lucide="archive"></i></span> Load Precomputed Demo
+            </button>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Execution time: ~1.2s for 62.5k pixels</span>
+        </div>
+
+        <!-- Progress Bar (Requirement 2) -->
+        <div class="pipeline-progress-container" id="pipelineProgressWrap">
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; margin-bottom: 0.35rem;">
+            <span style="color: #38bdf8; font-weight: 600;" id="pipelineProgressLabel">Executing Lunar Pipeline...</span>
+            <span style="font-family: var(--font-mono); font-weight: 700; color: #38bdf8;" id="pipelineProgressPct">0%</span>
+          </div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="pipelineProgressBarFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Streamed Terminal Window in Data Tab -->
+      <div class="terminal-panel" style="margin-top: 0;">
+        <div class="panel-header">
+          <h2><span><i data-lucide="terminal"></i></span> Pipeline Execution Terminal Output</h2>
+          <div style="display: flex; gap: 0.4rem;">
+            <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="copyTerminalLogs()">Copy</button>
+            <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="clearTerminal()">Clear</button>
+          </div>
+        </div>
+        <div class="terminal-window" id="terminalWindowDataTab" style="max-height: 220px;">
+          <div class="term-line info">[System] LunaSafe Mission Control Data Ingestion Engine Ready.</div>
+          <div class="term-line ok">[Ready] Precomputed outputs loaded from outputs/ (Offline Demo Mode Active).</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 6: METHOD & PHYSICAL MODELING (Requirement 3) -->
+    <!-- =================================================================== -->
+    <div id="methodTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-methodTab" tabindex="0" style="display: none !important;">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800;">Method & Physical Modeling</h2>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">Deterministic geophysical equations, multi-criteria hazard formulation, architectural flowchart, and transparent scientific disclosures.</p>
+      </div>
+
+      <!-- 1. Pipeline Flowchart (Requirement 3: Mermaid or SVG) -->
+      <div class="flowchart-container">
+        <h3 style="font-size: 0.86rem; font-weight: 700; color: #38bdf8; margin-bottom: 1rem; text-align: left; display: flex; align-items: center; gap: 0.4rem;">
+          <span><i data-lucide="ruler"></i></span> LunaSafe Autonomous End-to-End Geophysical Processing Pipeline
+        </h3>
+        <svg viewBox="0 0 960 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="flowGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0284c7" />
+              <stop offset="100%" stop-color="#0369a1" />
+            </linearGradient>
+            <linearGradient id="flowGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0f766e" />
+              <stop offset="100%" stop-color="#115e59" />
+            </linearGradient>
+            <linearGradient id="flowGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#b45309" />
+              <stop offset="100%" stop-color="#92400e" />
+            </linearGradient>
+            <linearGradient id="flowGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#15803d" />
+              <stop offset="100%" stop-color="#166534" />
+            </linearGradient>
+            <linearGradient id="flowGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#7c3aed" />
+              <stop offset="100%" stop-color="#6d28d9" />
+            </linearGradient>
+          </defs>
+
+          <!-- Stage 1: Ingestion -->
+          <rect x="15" y="30" width="160" height="150" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+          <text x="95" y="60" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">1. DATA INGESTION</text>
+          <text x="95" y="90" fill="#e2e8f0" font-size="10" text-anchor="middle">• NASA LOLA DEM</text>
+          <text x="95" y="112" fill="#e2e8f0" font-size="10" text-anchor="middle">• Polar PSR Mask</text>
+          <text x="95" y="134" fill="#94a3b8" font-size="9" text-anchor="middle">IAU 2015 Sphere</text>
+          <text x="95" y="152" fill="#94a3b8" font-size="9" text-anchor="middle">NoData Filter (-9999)</text>
+
+          <!-- Arrow 1 -> 2 -->
+          <path d="M 175 105 L 205 105" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arrow)" fill="none" />
+          <polygon points="205,100 215,105 205,110" fill="#38bdf8" />
+
+          <!-- Stage 2: Derivatives -->
+          <rect x="215" y="30" width="165" height="150" rx="10" fill="#0f172a" stroke="#2dd4bf" stroke-width="2"/>
+          <text x="297" y="60" fill="#2dd4bf" font-size="12" font-weight="bold" text-anchor="middle">2. DERIVATIVES</text>
+          <text x="297" y="90" fill="#e2e8f0" font-size="10" text-anchor="middle">• Horn Slope (8-pt)</text>
+          <text x="297" y="112" fill="#e2e8f0" font-size="10" text-anchor="middle">• Micro-Roughness σ</text>
+          <text x="297" y="134" fill="#e2e8f0" font-size="10" text-anchor="middle">• 3D Shaded Hillshade</text>
+          <text x="297" y="152" fill="#94a3b8" font-size="9" text-anchor="middle">Riley TRI Index</text>
+
+          <!-- Arrow 2 -> 3 -->
+          <path d="M 380 105 L 410 105" stroke="#2dd4bf" stroke-width="2.5" fill="none" />
+          <polygon points="410,100 420,105 410,110" fill="#2dd4bf" />
+
+          <!-- Stage 3: Index Calculation -->
+          <rect x="420" y="30" width="165" height="150" rx="10" fill="#0f172a" stroke="#fbbf24" stroke-width="2"/>
+          <text x="502" y="60" fill="#fbbf24" font-size="12" font-weight="bold" text-anchor="middle">3. SCREENING INDEX</text>
+          <text x="502" y="85" fill="#fef08a" font-size="10" font-family="monospace" font-weight="bold" text-anchor="middle">H = Ws·S + Wr·R + Wd·D</text>
+          <text x="502" y="112" fill="#e2e8f0" font-size="10" text-anchor="middle">• Auto-Normalized</text>
+          <text x="502" y="134" fill="#e2e8f0" font-size="10" text-anchor="middle">• Physical Overrides</text>
+          <text x="502" y="152" fill="#94a3b8" font-size="9" text-anchor="middle">Slope ≥ 15° | σ ≥ 5m</text>
+
+          <!-- Arrow 3 -> 4 -->
+          <path d="M 585 105 L 615 105" stroke="#fbbf24" stroke-width="2.5" fill="none" />
+          <polygon points="615,100 625,105 615,110" fill="#fbbf24" />
+
+          <!-- Stage 4: Classification -->
+          <rect x="625" y="30" width="160" height="150" rx="10" fill="#0f172a" stroke="#4ade80" stroke-width="2"/>
+          <text x="705" y="60" fill="#4ade80" font-size="12" font-weight="bold" text-anchor="middle">4. 5-CLASS PARTITION</text>
+          <text x="705" y="86" fill="#4ade80" font-size="9.5" text-anchor="middle">■ Class 1: Safe</text>
+          <text x="705" y="104" fill="#fbbf24" font-size="9.5" text-anchor="middle">■ Class 2: Caution</text>
+          <text x="705" y="122" fill="#ef4444" font-size="9.5" text-anchor="middle">■ Class 3: Unsafe</text>
+          <text x="705" y="140" fill="#c084fc" font-size="9.5" text-anchor="middle">■ Class 4: Shadowed</text>
+          <text x="705" y="158" fill="#64748b" font-size="9" text-anchor="middle">■ Class 0: NoData</text>
+
+          <!-- Arrow 4 -> 5 -->
+          <path d="M 785 105 L 815 105" stroke="#4ade80" stroke-width="2.5" fill="none" />
+          <polygon points="815,100 825,105 815,110" fill="#4ade80" />
+
+          <!-- Stage 5: Products -->
+          <rect x="825" y="30" width="120" height="150" rx="10" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>
+          <text x="885" y="60" fill="#c084fc" font-size="11" font-weight="bold" text-anchor="middle">5. PRODUCTS</text>
+          <text x="885" y="88" fill="#e2e8f0" font-size="9.5" text-anchor="middle">• GeoTIFF Rasters</text>
+          <text x="885" y="108" fill="#e2e8f0" font-size="9.5" text-anchor="middle">• Shapefile / JSON</text>
+          <text x="885" y="128" fill="#e2e8f0" font-size="9.5" text-anchor="middle">• 300 DPI Map</text>
+          <text x="885" y="148" fill="#e2e8f0" font-size="9.5" text-anchor="middle">• PDF Report</text>
+        </svg>
+      </div>
+
+      <!-- 2. Scientific Definitions Grid (Requirement 3: PSR, slope, roughness, shadow fraction) -->
+      <div class="definitions-grid">
+        <!-- PSR -->
+        <div class="definition-card">
+          <h3><span><i data-lucide="moon"></i></span> Permanently Shadowed Region (PSR)</h3>
+          <p>
+            Topographic depressions at lunar polar latitudes (&gt; 80°S) where crater rims permanently occlude solar incidence over the 18.6-year lunar precession cycle. Ambient temperatures remain below 110 K, creating volatile cold traps for water ice. Optical guidance cannot observe landing terrain without active lidar.
+          </p>
+        </div>
+
+        <!-- Slope -->
+        <div class="definition-card">
+          <h3><span><i data-lucide="mountain"></i></span> Topographic Slope (Horn 1981)</h3>
+          <p>
+            Maximum rate of elevation change across an 8-neighbor moving kernel using central finite differences: 
+            $\tan \theta = \sqrt{(\partial z / \partial x)^2 + (\partial z / \partial y)^2}$. Slopes &lt; 5.0° ensure lander tip-over margins; slopes &ge; 15.0° cause catastrophic overturning for standard tripod lander chassis.
+          </p>
+        </div>
+
+        <!-- Roughness -->
+        <div class="definition-card">
+          <h3><span><i data-lucide="activity"></i></span> Micro-Relief Roughness (σ)</h3>
+          <p>
+            Standard deviation of detrended residual elevations within a local moving kernel ($\sigma_z = \sqrt{\frac{1}{N} \sum (z_i - \bar{z})^2}$). Represents surface obstacles, small craters, and boulder clusters that could penetrate engine bells or exceed leg clearance envelopes (&gt; 1.5 m).
+          </p>
+        </div>
+
+        <!-- Shadow Fraction -->
+        <div class="definition-card">
+          <h3><span><i data-lucide="sun"></i></span> Shadow Obscuration Fraction (Wd)</h3>
+          <p>
+            Fractional illumination attenuation evaluated by grazing-angle ray casting against neighboring elevation barriers. Weight $W_d$ penalizes candidate landing sites with insufficient optical sensor visibility or solar power generation during surface operations.
+          </p>
+        </div>
+      </div>
+
+      <!-- 3. Deterministic Hazard Rules Table (Requirement 3) -->
+      <div class="glass-panel" style="margin-bottom: 1.5rem;">
+        <div class="panel-header">
+          <h2><span><i data-lucide="sliders-horizontal"></i></span> Deterministic Multi-Criteria Classification Rules Matrix</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="rules-summary-table" style="font-size: 0.76rem;">
+            <thead>
+              <tr>
+                <th>Class ID</th>
+                <th>Classification Name</th>
+                <th>Deterministic Mathematical Condition</th>
+                <th>Physical Rationale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span style="color: var(--color-safe); font-weight: bold;">Class 1</span></td>
+                <td><b style="color: var(--color-safe);">Safe</b></td>
+                <td>Slope &lt; 5.0° &bull; Roughness &lt; 1.5 m &bull; H &lt; 0.25 &bull; Non-PSR (psr = 0)</td>
+                <td>Level, smooth terrain with full optical visibility outside shadow cold traps.</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-caution); font-weight: bold;">Class 2</span></td>
+                <td><b style="color: var(--color-caution);">Caution</b></td>
+                <td>0.25 &le; H &lt; 0.60 &bull; Non-override &bull; Non-PSR (psr = 0)</td>
+                <td>Transition terrain with moderate gradient or micro-relief requiring thruster margins.</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-unsafe); font-weight: bold;">Class 3</span></td>
+                <td><b style="color: var(--color-unsafe);">Unsafe</b></td>
+                <td>Slope &ge; 15.0° OR Roughness &ge; 5.0 m OR H &ge; 0.60</td>
+                <td>Hard physics override: steep slopes induce lander tip-over; rough boulders breach clearance.</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--color-shadow); font-weight: bold;">Class 4</span></td>
+                <td><b style="color: var(--color-shadow);">Shadowed-Unknown</b></td>
+                <td>PSR Shadow (psr = 1) AND non-steep (Slope &lt; 15.0°)</td>
+                <td>Permanently shadowed depression preventing optical verification without active lidar.</td>
+              </tr>
+              <tr>
+                <td><span style="color: var(--text-muted); font-weight: bold;">Class 0</span></td>
+                <td><b style="color: var(--text-muted);">NoData</b></td>
+                <td>Elevation missing or invalid (&le; -9999.0)</td>
+                <td>Outside valid sensor swath; strictly preserved to prevent false-safe landing clearance.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. Data Sources Provenance Card -->
+      <div class="glass-panel" style="margin-bottom: 1.5rem;">
+        <div class="panel-header">
+          <h2><span><i data-lucide="satellite"></i></span> Data Sources & Cartographic References</h2>
+        </div>
+        <div id="dataSourceList" style="font-size: 0.76rem; line-height: 1.5; color: #cbd5e1;">
+          <p class="skeleton-text" id="dataSourceLoading" style="color: #94a3b8;">Loading dataset registry from /api/data-sources…</p>
+        </div>
+        <div id="artemisRegionList" class="skeleton-text" style="margin-top: 0.75rem; font-size: 0.74rem; color: #cbd5e1;"></div>
+        <div id="hazardThresholdNote" style="margin-top: 0.5rem; font-size: 0.7rem; color: #94a3b8;"></div>
+        <div id="regionJumpList" class="skeleton-text" style="margin-top: 0.6rem; font-size: 0.72rem;"></div>
+      </div>
+
+      <!-- 5. Honest Scientific Limitations (Requirement 3: Written honestly) -->
+      <div class="limitations-warning-card">
+        <h3><span><i data-lucide="alert-triangle"></i></span> Transparent Physical Assumptions & Engineering Limitations</h3>
+        <div style="font-size: 0.76rem; line-height: 1.55; color: #fca5a5;">
+          <p style="margin-bottom: 0.4rem;">
+            <b>1. Spatial Resolution Constraint:</b> Orbital DEMs (240 m/px real or 20 m/px synthetic) cannot resolve boulders smaller than cell dimensions (&lt; 1.0 m). Terminal obstacle clearance requires surface-relative hazard avoidance sensors (TRN/LiDAR).
+          </p>
+          <p style="margin-bottom: 0.4rem;">
+            <b>2. Instantaneous Illumination vs. Full Diurnal Cycle:</b> Single-frame ray-tracing simulates instantaneous grazing illumination. Definitive volatile cold-trap analysis requires multi-year lunar precession tracking.
+          </p>
+          <p style="margin-bottom: 0.4rem;">
+            <b>3. Geotechnical Soil Bearing Capacity:</b> Topographic laser altimetry measures surface relief, not soil shear strength or regolith compaction. Pad penetration depth cannot be inferred from DEMs alone.
+          </p>
+          <p>
+            <b>4. Radar / Active Sensor Requirement:</b> Class 4 (Shadowed-Unknown) areas are not automatically dangerous slopes, but lack optical illumination. Landing in Class 4 strictly requires active surface illumination or RF guidance beacons.
+          </p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- TAB 8: ROVER TRAVERSE STUDIO & AUTONOMOUS MOBILITY -->
+    <!-- =================================================================== -->
+    <div id="roverStudioTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-roverStudioTab" tabindex="0">
+      <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+            <span><i data-lucide="navigation"></i></span> Autonomous Rover Traverse & Pathfinding Studio
+          </h2>
+          <p style="font-size: 0.8rem; color: var(--text-secondary);">
+            Multi-objective kinematic pathfinding between sunlit landing sites and permanently shadowed water-ice cold traps, with terramechanics slope resistance and battery State-of-Charge (SoC) management.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="switchTab('terrain3dTab', document.querySelectorAll('.tab-btn')[2])">
+            <span><i data-lucide="orbit"></i></span> View in 3D WebGL
+          </button>
+          <button class="btn btn-primary" onclick="computeRoverRoute()" id="btnComputeRouteHeader">
+            <span><i data-lucide="play"></i></span> Compute Optimal Route
+          </button>
+        </div>
+      </div>
+
+      <!-- Rover KPI Ribbon -->
+      <div class="kpi-ribbon" style="margin-bottom: 1rem;">
+        <div class="kpi-box" style="border-left: 3px solid #38bdf8;">
+          <div class="kpi-header-row"><span class="kpi-label">Traverse Distance</span></div>
+          <div class="kpi-main-row"><div class="kpi-large-value"><span id="roverDistKm">--</span> <span class="kpi-unit">km</span></div></div>
+        </div>
+        <div class="kpi-box" style="border-left: 3px solid #10b981;">
+          <div class="kpi-header-row"><span class="kpi-label">Est. Drive Time</span></div>
+          <div class="kpi-main-row"><div class="kpi-large-value"><span id="roverDurationHrs">--</span> <span class="kpi-unit">hrs</span></div></div>
+        </div>
+        <div class="kpi-box" style="border-left: 3px solid #f59e0b;">
+          <div class="kpi-header-row"><span class="kpi-label">Max / Avg Slope</span></div>
+          <div class="kpi-main-row"><div class="kpi-large-value"><span id="roverMaxSlope">--</span><span class="kpi-unit">° / </span><span id="roverAvgSlope">--</span><span class="kpi-unit">°</span></div></div>
+        </div>
+        <div class="kpi-box" style="border-left: 3px solid #8b5cf6;">
+          <div class="kpi-header-row"><span class="kpi-label">Shadow Excursion</span></div>
+          <div class="kpi-main-row"><div class="kpi-large-value"><span id="roverShadowPct">--</span> <span class="kpi-unit">%</span></div></div>
+        </div>
+        <div class="kpi-box" style="border-left: 3px solid #06b6d4;">
+          <div class="kpi-header-row"><span class="kpi-label">Final Battery SoC</span></div>
+          <div class="kpi-main-row"><div class="kpi-large-value"><span id="roverBatterySoc">--</span> <span class="kpi-unit">%</span></div></div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Rover Parameters & Setup -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h3><span><i data-lucide="compass"></i></span> Mission Route Waypoints</h3>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="roverStartSelect">Start Waypoint (Origin)</label>
+            <select id="roverStartSelect" class="form-select" style="width: 100%; background: #0f172a; color: #f8fafc; border: 1px solid #334155; padding: 0.4rem; border-radius: 4px; font-size: 0.82rem;">
+              <option value="site_alpha">Landing Site Alpha (Primary Zone)</option>
+              <option value="site_beta">Landing Site Beta (Secondary Zone)</option>
+              <option value="site_gamma">Landing Site Gamma (Tertiary Zone)</option>
+              <option value="custom">Interactive Map Click (Origin)</option>
+            </select>
+          </div>
+
+          <div class="control-group" style="margin-top: 0.75rem;">
+            <label class="control-label" for="roverGoalSelect">Destination (Science Target)</label>
+            <select id="roverGoalSelect" class="form-select" style="width: 100%; background: #0f172a; color: #f8fafc; border: 1px solid #334155; padding: 0.4rem; border-radius: 4px; font-size: 0.82rem;">
+              <option value="psr_primary">Primary Cold Trap PSR (Water Ice Target)</option>
+              <option value="summit_ridge">High-Illumination Summit Ridge (Safe High Ground)</option>
+              <option value="custom">Interactive Map Click (Destination)</option>
+            </select>
+          </div>
+
+          <div class="control-group" style="margin-top: 0.75rem;">
+            <label class="control-label" for="roverProfileSelect">Routing Objective</label>
+            <select id="roverProfileSelect" class="form-select" style="width: 100%; background: #0f172a; color: #f8fafc; border: 1px solid #334155; padding: 0.4rem; border-radius: 4px; font-size: 0.82rem;">
+              <option value="balanced">Balanced Energy & Safety (A*)</option>
+              <option value="min_energy">Contour Traverse (Min Energy / Climbing)</option>
+              <option value="fastest">Direct Line (Fastest Transit)</option>
+              <option value="safe_standoff">Maximum Hazard Standoff Clearance</option>
+            </select>
+          </div>
+
+          <div class="control-group" style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <label class="control-label">Max Negotiable Slope</label>
+              <span id="roverMaxSlopeVal" style="font-family: var(--font-mono); font-size: 0.8rem; color: #38bdf8;">15.0°</span>
+            </div>
+            <input type="range" id="roverMaxSlopeSlider" min="8" max="22" step="0.5" value="15.0" oninput="document.getElementById('roverMaxSlopeVal').textContent = this.value + '°'">
+          </div>
+
+          <div class="control-group" style="margin-top: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <label class="control-label">Nominal Rover Speed</label>
+              <span id="roverSpeedVal" style="font-family: var(--font-mono); font-size: 0.8rem; color: #10b981;">0.10 m/s</span>
+            </div>
+            <input type="range" id="roverSpeedSlider" min="0.05" max="0.30" step="0.01" value="0.10" oninput="document.getElementById('roverSpeedVal').textContent = parseFloat(this.value).toFixed(2) + ' m/s'">
+          </div>
+
+          <div class="control-group" style="margin-top: 0.75rem;">
+            <label class="control-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" id="roverAvoidPsrToggle" checked style="accent-color: #8b5cf6; width: 1rem; height: 1rem;">
+              <span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="moon" style="width:13px;height:13px;"></i> Avoid PSR / Shadowed Cells</span>
+            </label>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">When enabled, permanently shadowed cold traps are treated as impassable.</div>
+          </div>
+
+          <div class="control-group" style="margin-top: 0.75rem;">
+            <label class="control-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" id="roverAvoidUnsafeToggle" style="accent-color: #ef4444; width: 1rem; height: 1rem;">
+              <span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="shield-alert" style="width:13px;height:13px;"></i> Avoid Unsafe (Class 3) Cells</span>
+            </label>
+            <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 0.2rem;">When enabled, steep (&gt;15°) or rough rocket-landing hazard cells are treated as impassable.</div>
+          </div>
+
+          <div style="margin-top: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <button class="btn btn-primary" id="btnComputeRoute" onclick="computeRoverRoute()" style="width: 100%; justify-content: center;">
+              <span><i data-lucide="play"></i></span> <span id="btnComputeRouteLabel">Compute Traverse Path</span>
+            </button>
+            <button class="btn btn-primary" id="btnLaunchRoverSim" onclick="launchRoverSimulation3D()" style="width: 100%; justify-content: center; font-weight: 700; background: linear-gradient(135deg, #10b981, #06b6d4); box-shadow: 0 0 16px rgba(6, 182, 212, 0.45); font-size: 0.78rem;">
+              <span><i data-lucide="navigation"></i></span> <span>Launch 3D Mission Traverse Simulation</span>
+            </button>
+            <button class="btn btn-secondary" onclick="enableMapClickRouting()" id="btnPickRoutePoints" style="width: 100%; justify-content: center; font-size: 0.78rem;">
+              <span><i data-lucide="map-pin"></i></span> Pick Start & Goal on 2D Studio Map
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" onclick="resetRoverRoute()" style="flex: 1; justify-content: center; font-size: 0.76rem;">
+                <span>↺</span> Reset Route
+              </button>
+              <button class="btn btn-secondary" onclick="undoRoverRoutePick()" style="flex: 1; justify-content: center; font-size: 0.76rem;">
+                <span>↶</span> Undo Last Pick
+              </button>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" onclick="exportRoverRouteGeoJSON()" id="btnExportRouteGeoJSON" style="flex: 1; justify-content: center; font-size: 0.76rem;" disabled>
+                <span><i data-lucide="download"></i></span> Export GeoJSON
+              </button>
+              <button class="btn btn-secondary" onclick="exportRoverRouteCSV()" id="btnExportRouteCSV" style="flex: 1; justify-content: center; font-size: 0.76rem;" disabled>
+                <span><i data-lucide="file-spreadsheet"></i></span> Export CSV
+              </button>
+            </div>
+            <button class="btn btn-primary" onclick="saveRouteToHub()" id="btnSaveRouteToHub" style="width: 100%; justify-content: center; font-size: 0.78rem;" disabled>
+              <span><i data-lucide="archive"></i></span> Save Route to Artifact Hub
+            </button>
+            <div id="roverStatusMsg" style="display: none; font-size: 0.76rem; padding: 0.5rem 0.7rem; border-radius: 4px; line-height: 1.4;"></div>
+          </div>
+        </div>
+
+        <!-- Traverse Transect Profile & Waypoint Table -->
+        <div class="glass-panel" style="display: flex; flex-direction: column;">
+          <div class="panel-header">
+            <h3><span><i data-lucide="line-chart"></i></span> Elevation, Slope & Battery Profile Along Traverse</h3>
+          </div>
+
+          <!-- Hazard Breakdown Strip -->
+          <div id="roverHazardBreakdown" style="display: none; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 80px; background: rgba(46, 204, 113, 0.08); border: 1px solid rgba(46, 204, 113, 0.35); border-radius: 4px; padding: 0.35rem 0.5rem; text-align: center;">
+              <div style="font-size: 0.62rem; color: var(--text-muted);">SAFE</div>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; color: #2ecc71;" id="roverHbSafe">--%</div>
+            </div>
+            <div style="flex: 1; min-width: 80px; background: rgba(243, 156, 18, 0.08); border: 1px solid rgba(243, 156, 18, 0.35); border-radius: 4px; padding: 0.35rem 0.5rem; text-align: center;">
+              <div style="font-size: 0.62rem; color: var(--text-muted);">CAUTION</div>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; color: #f39c12;" id="roverHbCaution">--%</div>
+            </div>
+            <div style="flex: 1; min-width: 80px; background: rgba(231, 76, 60, 0.08); border: 1px solid rgba(231, 76, 60, 0.35); border-radius: 4px; padding: 0.35rem 0.5rem; text-align: center;">
+              <div style="font-size: 0.62rem; color: var(--text-muted);">UNSAFE</div>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; color: #e74c3c;" id="roverHbUnsafe">--%</div>
+            </div>
+            <div style="flex: 1; min-width: 80px; background: rgba(142, 68, 173, 0.08); border: 1px solid rgba(142, 68, 173, 0.35); border-radius: 4px; padding: 0.35rem 0.5rem; text-align: center;">
+              <div style="font-size: 0.62rem; color: var(--text-muted);">SHADOW</div>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; color: #8e44ad;" id="roverHbShadow">--%</div>
+            </div>
+            <div style="flex: 1; min-width: 110px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 4px; padding: 0.35rem 0.5rem; text-align: center;">
+              <div style="font-size: 0.62rem; color: var(--text-muted);">SLOPE COMPLIANCE</div>
+              <div style="font-family: var(--font-mono); font-size: 0.82rem; color: #38bdf8;" id="roverHbCompliance">0 cells ≥ limit</div>
+            </div>
+          </div>
+
+          <!-- Canvas Profile Chart -->
+          <div style="position: relative; width: 100%; height: 200px; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 6px; margin-bottom: 1rem;">
+            <canvas id="roverProfileCanvas" width="800" height="200" style="width: 100%; height: 100%; display: block;"></canvas>
+            <div id="roverChartLegend" style="position: absolute; top: 8px; right: 12px; display: flex; gap: 0.75rem; font-size: 0.72rem;">
+              <span style="color: #38bdf8;">■ Elevation</span>
+              <span style="color: #f59e0b;">■ Slope (deg)</span>
+              <span style="color: #10b981;">■ Battery SoC %</span>
+              <span style="color: #8b5cf6;">■ Shadow Excursion</span>
+            </div>
+          </div>
+
+          <!-- Waypoints Table -->
+          <div style="flex: 1; min-height: 180px; max-height: 250px; overflow-y: auto; border: 1px solid #334155; border-radius: 6px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.74rem; text-align: left;">
+              <thead>
+                <tr style="background: rgba(30, 41, 59, 0.8); position: sticky; top: 0;">
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">#</th>
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">Dist (m)</th>
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">Elev (m)</th>
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">Slope</th>
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">Illumination</th>
+                  <th style="padding: 6px 10px; border-bottom: 1px solid #334155;">Battery SoC</th>
+                </tr>
+              </thead>
+              <tbody id="roverWaypointsBody">
+                <tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: #94a3b8;">Click 'Compute Optimal Route' to generate waypoints.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================================================================== -->
+    <!-- TAB 9: ARTIFACTS HUB (Requirement 5) -->
+    <!-- =================================================================== -->
+    <div id="exportTab" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-exportTab" tabindex="0" style="display: none !important;">
+      <div style="margin-bottom: 1.25rem;">
+        <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.35rem; font-weight: 800;">Science Artifacts & Download Hub</h2>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">Direct access to all geospatial products, vector boundaries, publication maps, PDF mission reports, and tabular telemetry generated by OrbisLuna.</p>
+        <div id="artifactDatasetBanner" style="margin-top: 0.6rem; font-size: 0.76rem; font-family: var(--font-mono); color: var(--color-cyan); background: rgba(0, 229, 255, 0.06); border: 1px solid rgba(0, 229, 255, 0.2); border-radius: 4px; padding: 0.45rem 0.75rem; display: none;"></div>
+      </div>
+
+      <!-- Hero: One-Click PDF Mission Report -->
+      <div class="download-card" style="border: 2px solid var(--color-cyan); background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(6, 182, 212, 0.1)); margin-bottom: 1.25rem;">
+        <div>
+          <div style="font-size: 1.1rem; margin-bottom: 0.25rem; color: #ffffff;"><span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="file-text" style="width:15px;height:15px;"></i> <b>One-Click PDF Mission Report</b></span></div>
+          <p style="font-size: 0.74rem; color: #cbd5e1; line-height: 1.45;">Comprehensive archival flight certification report containing 4-panel cartography, classification breakdown, 9-point rule audit, and physical assumptions. Automatically regenerated whenever the active dataset or hazard outputs change.</p>
+        </div>
+        <a href="/api/download/mission_report.pdf" download="OrbisLuna_Mission_Report.pdf" class="btn btn-primary" style="justify-content: center; font-weight: 700;">
+          <span><i data-lucide="download"></i></span> Download Mission Report PDF
+        </a>
+      </div>
+
+      <!-- Hub Toolbar -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+        <input type="search" id="artifactSearch" placeholder="Search artifacts by title, tag, filename…" oninput="renderArtifactHub()" style="flex: 2 1 220px; min-width: 180px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; padding: 0.45rem 0.65rem; font-size: 0.78rem;">
+        <select id="artifactTypeFilter" onchange="renderArtifactHub()" style="flex: 0 1 140px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; padding: 0.45rem 0.5rem; font-size: 0.76rem;">
+          <option value="">All Types</option>
+        </select>
+        <select id="artifactDatasetFilter" onchange="renderArtifactHub()" style="flex: 0 1 160px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; padding: 0.45rem 0.5rem; font-size: 0.76rem;">
+          <option value="">All Datasets</option>
+        </select>
+        <select id="artifactSort" onchange="renderArtifactHub()" style="flex: 0 1 150px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 4px; color: #e2e8f0; padding: 0.45rem 0.5rem; font-size: 0.76rem;">
+          <option value="date_desc">Newest First</option>
+          <option value="date_asc">Oldest First</option>
+          <option value="title_asc">Title A→Z</option>
+          <option value="size_desc">Largest First</option>
+          <option value="type_asc">Type A→Z</option>
+        </select>
+        <button class="btn btn-secondary" onclick="loadArtifactManifest(true)" style="padding: 0.45rem 0.7rem; font-size: 0.76rem;">↻ Refresh</button>
+        <label class="btn btn-secondary" style="padding: 0.45rem 0.7rem; font-size: 0.76rem; cursor: pointer; margin: 0;">
+          ⬆ Upload <input type="file" id="artifactUploadInput" accept=".json,.geojson,.csv,.txt,.pdf,.png" onchange="uploadArtifactFile(this)" style="display: none;">
+        </label>
+      </div>
+
+      <!-- States -->
+      <div id="artifactLoading" style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.85rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;"><i data-lucide="loader-2" class="spin"></i> Scanning artifact manifest…</div>
+      <div id="artifactError" style="display: none; text-align: center; padding: 2.5rem; border: 1px solid rgba(231, 76, 60, 0.4); border-radius: 6px; background: rgba(231, 76, 60, 0.06);">
+        <div style="margin-bottom: 0.5rem; display:flex; justify-content:center;"><i data-lucide="alert-triangle" style="width:32px;height:32px;color:#f59e0b;"></i></div>
+        <div id="artifactErrorMsg" style="font-size: 0.82rem; color: #e74c3c; margin-bottom: 0.85rem;">Failed to load artifacts.</div>
+        <button class="btn btn-primary" onclick="loadArtifactManifest(true)" style="justify-content: center;">Retry</button>
+      </div>
+      <div id="artifactEmpty" style="display: none; text-align: center; padding: 2.5rem; border: 1px dashed #334155; border-radius: 6px;">
+        <div style="margin-bottom: 0.5rem; display:flex; justify-content:center;"><i data-lucide="archive" style="width:32px;height:32px;color:#64748b;"></i></div>
+        <div style="font-size: 0.82rem; color: var(--text-muted);">No artifacts generated yet. Run the hazard pipeline from Mission Command, or save a rover traverse route, and they will appear here.</div>
+      </div>
+
+      <!-- Dynamic Artifact Cards -->
+      <div id="artifactGrid" class="downloads-grid"></div>
+
+      <!-- Preview Modal -->
+      <div id="artifactPreviewModal" style="display: none; position: fixed; inset: 0; z-index: 900; background: rgba(2, 6, 23, 0.85); align-items: center; justify-content: center; padding: 1.5rem;" onclick="if(event.target===this)closeArtifactPreview()">
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; max-width: 860px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; border-bottom: 1px solid #334155;">
+            <div>
+              <div id="artifactPreviewTitle" style="font-weight: 700; font-size: 0.95rem; color: #fff;">—</div>
+              <div id="artifactPreviewMeta" style="font-size: 0.68rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 0.15rem;"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="closeArtifactPreview()" style="padding: 0.3rem 0.6rem; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+          </div>
+          <div id="artifactPreviewBody" style="padding: 1rem; overflow: auto; flex: 1; min-height: 200px;"></div>
+          <div id="artifactPreviewActions" style="display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #334155;"></div>
+        </div>
+      </div>
+
+      <!-- Rover Hub Status -->
+      <div id="artifactHubStatus" style="display: none; margin-top: 1rem; font-size: 0.76rem; padding: 0.5rem 0.75rem; border-radius: 4px;"></div>
+    </div>
+
+  </main>
+
+  <!-- 3D Lunar Site Reconnaissance Inspection Pop-up Modal -->
+  <div id="siteInspectionModal" class="site-inspection-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="siteInspectionTitle" style="display: none;" onclick="if(event.target===this)closeSiteInspectionModal()">
+    <div class="site-inspection-window">
+      <!-- Header -->
+      <div class="site-inspection-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="site-inspection-icon-glow">
+            <i data-lucide="orbit"></i>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <h2 id="siteInspectionTitle" class="site-inspection-title">Haworth Crater Rim</h2>
+              <span id="siteInspectionBadge" class="status-badge badge-connected" style="font-size: 0.65rem;">ARTEMIS III CANDIDATE</span>
+              <span id="siteInspectionActiveBadge" class="status-badge" style="display:none; font-size: 0.65rem; background: rgba(0,229,255,0.15); color: #00e5ff; border: 1px solid rgba(0,229,255,0.4);">ACTIVE TERRAIN</span>
+            </div>
+            <div id="siteInspectionSubtitle" class="site-inspection-subtitle">86.79°S, 22.95°W • Polar Stereographic IAU 2015 Sphere</div>
+          </div>
+        </div>
+        <button class="site-inspection-close-btn" onclick="closeSiteInspectionModal()" aria-label="Close 3D Site Inspection">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <!-- Body: Left 3D Viewport, Right Telemetry & Controls -->
+      <div class="site-inspection-body">
+        <!-- Left: 3D Topographic Terrain Viewport -->
+        <div class="site-inspection-viewport-col">
+          <div class="site-3d-canvas-wrap" id="siteInspection3dMount">
+            <!-- 3D Loading overlay -->
+            <div id="site3dLoading" class="site-3d-loading">
+              <div class="spinner"></div>
+              <span>Generating High-Resolution 3D Terrain Mesh...</span>
+            </div>
+
+            <!-- Viewport Overlay HUD Header -->
+            <div class="site-3d-hud-top">
+              <span class="site-3d-tag"><i data-lucide="mountain"></i> <span id="site3dMeshResolution">NASA LOLA 240m/px Topography</span></span>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="site-3d-btn" id="btnSite3dWireframe" onclick="toggleSite3dWireframe()" title="Toggle wireframe topology"><i data-lucide="layers"></i> Wireframe</button>
+                <button class="site-3d-btn" id="btnSite3dAutoRotate" onclick="toggleSite3dAutoRotate()" title="Toggle auto-orbit spin"><i data-lucide="refresh-cw"></i> Spin</button>
+                <button class="site-3d-btn" onclick="resetSite3dCamera()" title="Reset 3D camera angle"><i data-lucide="rotate-ccw"></i></button>
+              </div>
+            </div>
+
+            <!-- Viewport Overlay HUD Bottom -->
+            <div class="site-3d-hud-bottom">
+              <div>
+                <span style="color: var(--text-muted); font-size: 0.65rem;">ELEVATION PROFILE: </span>
+                <b id="site3dElevRange" style="color: var(--color-cyan); font-family: var(--font-mono);">-4,020m to +4,013m (Relief: 8,033m)</b>
+              </div>
+              <div style="font-size: 0.65rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem;">
+                <span>Orbit: Drag</span> • <span>Zoom: Scroll</span> • <span>Pan: Shift+Drag</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3D Viewport Controls (Exaggeration & Solar Azimuth) -->
+          <div class="site-3d-toolbar">
+            <div class="site-3d-tool-item">
+              <div style="display: flex; justify-content: space-between; font-size: 0.68rem; margin-bottom: 0.2rem;">
+                <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;"><i data-lucide="ruler"></i> Vertical Exaggeration:</span>
+                <b id="valSite3dExag" style="color: var(--color-cyan); font-family: var(--font-mono);">2.5x</b>
+              </div>
+              <input type="range" class="lighting-slider" id="sliderSite3dExag" min="1.0" max="5.0" step="0.25" value="2.5" oninput="updateSite3dExag(this.value)">
+            </div>
+            <div class="site-3d-tool-item">
+              <div style="display: flex; justify-content: space-between; font-size: 0.68rem; margin-bottom: 0.2rem;">
+                <span style="color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;"><i data-lucide="sun"></i> Solar Grazing Angle:</span>
+                <b id="valSite3dAzimuth" style="color: var(--color-cyan); font-family: var(--font-mono);">135°</b>
+              </div>
+              <input type="range" class="lighting-slider" id="sliderSite3dAzimuth" min="0" max="360" step="5" value="135" oninput="updateSite3dLighting(this.value)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Reconnaissance Dossier & Mission Command Actions -->
+        <div class="site-inspection-info-col">
+          <!-- Overview Dossier -->
+          <div class="site-dossier-card">
+            <div class="site-dossier-label"><i data-lucide="file-text"></i> Site Description & Strategic Value</div>
+            <p id="siteInspectionDesc" class="site-dossier-text">
+              Broad cryogenic south-polar crater hosting persistent volatile cold traps and strategic rim crests.
+            </p>
+            <div id="siteInspectionSciVal" class="site-dossier-highlight">
+              Optimal communications line-of-sight to Earth with accessible volatile cold traps.
+            </div>
+          </div>
+
+          <!-- Scientific Telemetry Grid -->
+          <div class="site-metrics-grid">
+            <div class="site-metric-cell">
+              <span class="sm-lbl">DIAMETER / EXTENT</span>
+              <span class="sm-val" id="siteMetricDiameter">25.0 km</span>
+            </div>
+            <div class="site-metric-cell">
+              <span class="sm-lbl">TOTAL RELIEF</span>
+              <span class="sm-val" id="siteMetricRelief">8,033 m</span>
+            </div>
+            <div class="site-metric-cell">
+              <span class="sm-lbl">MEAN SLOPE</span>
+              <span class="sm-val" id="siteMetricSlope">4.8°</span>
+            </div>
+            <div class="site-metric-cell">
+              <span class="sm-lbl">PSR CRYOGENIC COLD TRAP</span>
+              <span class="sm-val" id="siteMetricPsr" style="color: var(--color-shadow);">18.4%</span>
+            </div>
+            <div class="site-metric-cell">
+              <span class="sm-lbl">SOLAR ILLUMINATION</span>
+              <span class="sm-val" id="siteMetricIllum" style="color: var(--color-cyan);">74.2%</span>
+            </div>
+            <div class="site-metric-cell">
+              <span class="sm-lbl">SAFETY SUITABILITY</span>
+              <span class="sm-val" id="siteMetricSuitability" style="color: var(--color-safe);">84.6% (Safe)</span>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="site-actions-container">
+            <button class="btn btn-primary" id="btnSiteActivate" onclick="activateSiteFromInspection()" style="width: 100%; justify-content: center; padding: 0.6rem; font-weight: 700; font-size: 0.82rem;">
+              <i data-lucide="check-circle-2"></i> Set as Active Mission Terrain Model
+            </button>
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+              <button class="btn btn-secondary" onclick="exploreSiteIn3dTopography()" style="flex: 1; justify-content: center; font-size: 0.74rem; padding: 0.45rem;">
+                <i data-lucide="orbit"></i> Open in 3D Studio
+              </button>
+              <button class="btn btn-secondary" onclick="exploreSiteIn2dStudio()" style="flex: 1; justify-content: center; font-size: 0.74rem; padding: 0.45rem;">
+                <i data-lucide="map"></i> Open in 2D Studio
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Help Modal Dialog -->
+  <div id="shortcutsDialog" class="shortcuts-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle" style="display: none;" onclick="if(event.target===this)closeShortcutsHelp()">
+    <div class="shortcuts-modal-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+        <h2 id="shortcutsTitle" style="font-size: 1.15rem; margin: 0; color: var(--color-cyan); display: flex; align-items: center; gap: 0.5rem;">
+          <span><i data-lucide="keyboard"></i></span> Keyboard Shortcuts Reference
+        </h2>
+        <button class="btn btn-secondary" onclick="closeShortcutsHelp()" aria-label="Close shortcuts dialog" style="padding: 0.25rem 0.6rem; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; font-size: 0.78rem;">
+        <div>
+          <h3 style="color: var(--text-primary); font-size: 0.85rem; margin-top: 0; margin-bottom: 0.4rem;"><span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="map" style="width:14px;height:14px;"></i> 2D Studio Canvas</span></h3>
+          <ul style="padding-left: 1.2rem; color: var(--text-secondary); line-height: 1.7; margin: 0;">
+            <li><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> : Pan viewport</li>
+            <li><kbd>+</kbd> / <kbd>-</kbd> : Zoom in / out</li>
+            <li><kbd>Shift</kbd> + <kbd>Arrows</kbd> : Step inspector 1 cell</li>
+            <li><kbd>Enter</kbd> : Pin pixel inspector</li>
+            <li><kbd>Escape</kbd> : Clear inspector</li>
+            <li><kbd>[</kbd> / <kbd>]</kbd> : Cycle visible layers</li>
+          </ul>
+        </div>
+        <div>
+          <h3 style="color: var(--text-primary); font-size: 0.85rem; margin-top: 0; margin-bottom: 0.4rem;"><span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="orbit" style="width:14px;height:14px;"></i> 3D WebGL Terrain</span></h3>
+          <ul style="padding-left: 1.2rem; color: var(--text-secondary); line-height: 1.7; margin: 0;">
+            <li><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> : Orbit camera</li>
+            <li><kbd>+</kbd> / <kbd>-</kbd> : Zoom in / out</li>
+            <li><kbd>Q</kbd> / <kbd>E</kbd> : Rotate solar azimuth</li>
+          </ul>
+          <h3 style="color: var(--text-primary); font-size: 0.85rem; margin-top: 0.75rem; margin-bottom: 0.4rem;"><span style="display:inline-flex;align-items:center;gap:0.35rem;"><i data-lucide="sliders" style="width:14px;height:14px;"></i> Global Controls</span></h3>
+          <ul style="padding-left: 1.2rem; color: var(--text-secondary); line-height: 1.7; margin: 0;">
+            <li><kbd>↑</kbd> / <kbd>↓</kbd> on tabs : Cycle tabs</li>
+            <li><kbd>?</kbd> : Open this dialog</li>
+            <li><kbd>Escape</kbd> : Close dialogs</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/lucide.min.js"></script>
+  <script src="/hazard_core.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

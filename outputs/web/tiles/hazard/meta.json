@@ -1,0 +1,13 @@
+{
+  "minzoom": 0,
+  "maxzoom": 0,
+  "tile_size": 256,
+  "tiles_x": 1,
+  "tiles_y": 1,
+  "grid_width": 250,
+  "grid_height": 250,
+  "dtype": "float32",
+  "value_min": 0.0,
+  "value_max": 4.0,
+  "note": "Row-major float32 tile arrays in Lunar Polar Stereographic grid space."
+}

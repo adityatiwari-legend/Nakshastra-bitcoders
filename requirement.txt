@@ -1,0 +1,11 @@
+# Alias for requirements.txt
+numpy==2.5.3
+scipy==1.18.1
+rasterio==1.5.2
+scikit-image==0.26.0
+geopandas==1.2.0
+shapely==2.2.0
+matplotlib==3.11.2
+pyproj==3.8.0
+pandas==3.0.6
+pytest==9.1.1

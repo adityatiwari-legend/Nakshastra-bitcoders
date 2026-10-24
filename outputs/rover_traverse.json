@@ -1,0 +1,1854 @@
+{
+  "status": "SUCCESS",
+  "rover_model": "OrbisLuna Artemis Polar Rover",
+  "start_coord": {
+    "row": 50,
+    "col": 39
+  },
+  "goal_coord": {
+    "row": 92,
+    "col": 137
+  },
+  "total_steps": 100,
+  "distance_2d_m": 27835.86,
+  "distance_3d_m": 27940.93,
+  "distance_km": 27.941,
+  "elevation_gain_m": 1834.0,
+  "elevation_loss_m": 89.5,
+  "avg_slope_deg": 5.64,
+  "max_slope_deg": 11.74,
+  "estimated_duration_hours": 77.61,
+  "shadow_distance_m": 0.0,
+  "shadow_fraction_pct": 0.0,
+  "final_battery_soc_pct": 100.0,
+  "avoid_psr": true,
+  "avoid_unsafe": false,
+  "cells_above_limit_count": 0,
+  "warnings": [],
+  "hazard_breakdown": {
+    "safe": {
+      "pixels": 44,
+      "pct": 44.0,
+      "distance_m": 12412.2
+    },
+    "caution": {
+      "pixels": 56,
+      "pct": 56.0,
+      "distance_m": 15528.7
+    },
+    "unsafe": {
+      "pixels": 0,
+      "pct": 0.0,
+      "distance_m": 0.0
+    },
+    "shadowed": {
+      "pixels": 0,
+      "pct": 0.0,
+      "distance_m": 0.0
+    }
+  },
+  "waypoints": [
+    {
+      "index": 0,
+      "row": 50,
+      "col": 39,
+      "easting_m": -66120.0,
+      "northing_m": 36840.0,
+      "elevation_m": -1815.0,
+      "slope_deg": 3.33,
+      "roughness_m": 12.36,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 0.0
+    },
+    {
+      "index": 1,
+      "row": 51,
+      "col": 40,
+      "easting_m": -65880.0,
+      "northing_m": 36600.0,
+      "elevation_m": -1802.0,
+      "slope_deg": 1.91,
+      "roughness_m": 6.56,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 339.7
+    },
+    {
+      "index": 2,
+      "row": 52,
+      "col": 41,
+      "easting_m": -65640.0,
+      "northing_m": 36360.0,
+      "elevation_m": -1796.5,
+      "slope_deg": 0.34,
+      "roughness_m": 2.06,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 679.1
+    },
+    {
+      "index": 3,
+      "row": 52,
+      "col": 42,
+      "easting_m": -65400.0,
+      "northing_m": 36360.0,
+      "elevation_m": -1796.5,
+      "slope_deg": 0.5,
+      "roughness_m": 3.0,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 919.1
+    },
+    {
+      "index": 4,
+      "row": 53,
+      "col": 43,
+      "easting_m": -65160.0,
+      "northing_m": 36120.0,
+      "elevation_m": -1794.5,
+      "slope_deg": 1.21,
+      "roughness_m": 4.61,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 1258.5
+    },
+    {
+      "index": 5,
+      "row": 53,
+      "col": 44,
+      "easting_m": -64920.0,
+      "northing_m": 36120.0,
+      "elevation_m": -1790.0,
+      "slope_deg": 1.39,
+      "roughness_m": 5.39,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 1498.6
+    },
+    {
+      "index": 6,
+      "row": 53,
+      "col": 45,
+      "easting_m": -64680.0,
+      "northing_m": 36120.0,
+      "elevation_m": -1787.5,
+      "slope_deg": 0.25,
+      "roughness_m": 3.64,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 1738.6
+    },
+    {
+      "index": 7,
+      "row": 53,
+      "col": 46,
+      "easting_m": -64440.0,
+      "northing_m": 36120.0,
+      "elevation_m": -1787.0,
+      "slope_deg": 0.65,
+      "roughness_m": 3.64,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 1978.6
+    },
+    {
+      "index": 8,
+      "row": 54,
+      "col": 47,
+      "easting_m": -64200.0,
+      "northing_m": 35880.0,
+      "elevation_m": -1788.5,
+      "slope_deg": 0.56,
+      "roughness_m": 3.32,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 2318.0
+    },
+    {
+      "index": 9,
+      "row": 54,
+      "col": 48,
+      "easting_m": -63960.0,
+      "northing_m": 35880.0,
+      "elevation_m": -1787.5,
+      "slope_deg": 0.87,
+      "roughness_m": 3.28,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 2558.0
+    },
+    {
+      "index": 10,
+      "row": 55,
+      "col": 49,
+      "easting_m": -63720.0,
+      "northing_m": 35640.0,
+      "elevation_m": -1791.5,
+      "slope_deg": 1.05,
+      "roughness_m": 4.24,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 2897.4
+    },
+    {
+      "index": 11,
+      "row": 56,
+      "col": 50,
+      "easting_m": -63480.0,
+      "northing_m": 35400.0,
+      "elevation_m": -1784.5,
+      "slope_deg": 1.68,
+      "roughness_m": 5.68,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 3236.9
+    },
+    {
+      "index": 12,
+      "row": 57,
+      "col": 51,
+      "easting_m": -63240.0,
+      "northing_m": 35160.0,
+      "elevation_m": -1777.5,
+      "slope_deg": 1.32,
+      "roughness_m": 5.07,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 3576.4
+    },
+    {
+      "index": 13,
+      "row": 58,
+      "col": 52,
+      "easting_m": -63000.0,
+      "northing_m": 34920.0,
+      "elevation_m": -1775.0,
+      "slope_deg": 0.93,
+      "roughness_m": 3.67,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 3915.8
+    },
+    {
+      "index": 14,
+      "row": 59,
+      "col": 53,
+      "easting_m": -62760.0,
+      "northing_m": 34680.0,
+      "elevation_m": -1773.0,
+      "slope_deg": 1.09,
+      "roughness_m": 4.47,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 4255.2
+    },
+    {
+      "index": 15,
+      "row": 60,
+      "col": 54,
+      "easting_m": -62520.0,
+      "northing_m": 34440.0,
+      "elevation_m": -1768.0,
+      "slope_deg": 1.03,
+      "roughness_m": 5.5,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 4594.7
+    },
+    {
+      "index": 16,
+      "row": 61,
+      "col": 55,
+      "easting_m": -62280.0,
+      "northing_m": 34200.0,
+      "elevation_m": -1780.0,
+      "slope_deg": 1.32,
+      "roughness_m": 4.92,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 4934.3
+    },
+    {
+      "index": 17,
+      "row": 62,
+      "col": 56,
+      "easting_m": -62040.0,
+      "northing_m": 33960.0,
+      "elevation_m": -1778.0,
+      "slope_deg": 0.93,
+      "roughness_m": 4.09,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 5273.7
+    },
+    {
+      "index": 18,
+      "row": 63,
+      "col": 57,
+      "easting_m": -61800.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1786.5,
+      "slope_deg": 1.55,
+      "roughness_m": 5.43,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 5613.3
+    },
+    {
+      "index": 19,
+      "row": 63,
+      "col": 58,
+      "easting_m": -61560.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1796.0,
+      "slope_deg": 2.56,
+      "roughness_m": 8.72,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 5853.4
+    },
+    {
+      "index": 20,
+      "row": 63,
+      "col": 59,
+      "easting_m": -61320.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1812.5,
+      "slope_deg": 2.2,
+      "roughness_m": 8.32,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 6094.0
+    },
+    {
+      "index": 21,
+      "row": 63,
+      "col": 60,
+      "easting_m": -61080.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1813.5,
+      "slope_deg": 1.3,
+      "roughness_m": 5.57,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 6334.0
+    },
+    {
+      "index": 22,
+      "row": 63,
+      "col": 61,
+      "easting_m": -60840.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1817.5,
+      "slope_deg": 1.37,
+      "roughness_m": 4.77,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 6574.0
+    },
+    {
+      "index": 23,
+      "row": 63,
+      "col": 62,
+      "easting_m": -60600.0,
+      "northing_m": 33720.0,
+      "elevation_m": -1822.0,
+      "slope_deg": 1.0,
+      "roughness_m": 3.71,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 6814.1
+    },
+    {
+      "index": 24,
+      "row": 64,
+      "col": 63,
+      "easting_m": -60360.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1821.0,
+      "slope_deg": 0.62,
+      "roughness_m": 2.5,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 7153.5
+    },
+    {
+      "index": 25,
+      "row": 64,
+      "col": 64,
+      "easting_m": -60120.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1824.0,
+      "slope_deg": 1.01,
+      "roughness_m": 3.43,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 7393.5
+    },
+    {
+      "index": 26,
+      "row": 64,
+      "col": 65,
+      "easting_m": -59880.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1830.0,
+      "slope_deg": 1.18,
+      "roughness_m": 4.0,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 7633.6
+    },
+    {
+      "index": 27,
+      "row": 64,
+      "col": 66,
+      "easting_m": -59640.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1834.5,
+      "slope_deg": 1.08,
+      "roughness_m": 3.67,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 7873.6
+    },
+    {
+      "index": 28,
+      "row": 64,
+      "col": 67,
+      "easting_m": -59400.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1840.0,
+      "slope_deg": 1.01,
+      "roughness_m": 3.5,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 8113.7
+    },
+    {
+      "index": 29,
+      "row": 64,
+      "col": 68,
+      "easting_m": -59160.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1844.5,
+      "slope_deg": 0.66,
+      "roughness_m": 2.74,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 8353.7
+    },
+    {
+      "index": 30,
+      "row": 64,
+      "col": 69,
+      "easting_m": -58920.0,
+      "northing_m": 33480.0,
+      "elevation_m": -1846.0,
+      "slope_deg": 0.24,
+      "roughness_m": 1.94,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 8593.7
+    },
+    {
+      "index": 31,
+      "row": 65,
+      "col": 70,
+      "easting_m": -58680.0,
+      "northing_m": 33240.0,
+      "elevation_m": -1846.5,
+      "slope_deg": 0.25,
+      "roughness_m": 1.94,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 8933.2
+    },
+    {
+      "index": 32,
+      "row": 65,
+      "col": 71,
+      "easting_m": -58440.0,
+      "northing_m": 33240.0,
+      "elevation_m": -1848.0,
+      "slope_deg": 0.39,
+      "roughness_m": 2.92,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 9173.2
+    },
+    {
+      "index": 33,
+      "row": 66,
+      "col": 72,
+      "easting_m": -58200.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1842.5,
+      "slope_deg": 1.12,
+      "roughness_m": 4.12,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 9512.6
+    },
+    {
+      "index": 34,
+      "row": 66,
+      "col": 73,
+      "easting_m": -57960.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1841.5,
+      "slope_deg": 1.89,
+      "roughness_m": 8.05,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 9752.6
+    },
+    {
+      "index": 35,
+      "row": 66,
+      "col": 74,
+      "easting_m": -57720.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1837.0,
+      "slope_deg": 5.29,
+      "roughness_m": 19.7,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 9992.7
+    },
+    {
+      "index": 36,
+      "row": 66,
+      "col": 75,
+      "easting_m": -57480.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1806.0,
+      "slope_deg": 9.22,
+      "roughness_m": 31.76,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 10234.7
+    },
+    {
+      "index": 37,
+      "row": 66,
+      "col": 76,
+      "easting_m": -57240.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1767.5,
+      "slope_deg": 9.97,
+      "roughness_m": 34.47,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 10477.7
+    },
+    {
+      "index": 38,
+      "row": 66,
+      "col": 77,
+      "easting_m": -57000.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1734.5,
+      "slope_deg": 9.64,
+      "roughness_m": 33.97,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 10720.0
+    },
+    {
+      "index": 39,
+      "row": 66,
+      "col": 78,
+      "easting_m": -56760.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1702.5,
+      "slope_deg": 9.41,
+      "roughness_m": 32.47,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 10962.1
+    },
+    {
+      "index": 40,
+      "row": 66,
+      "col": 79,
+      "easting_m": -56520.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1679.0,
+      "slope_deg": 9.2,
+      "roughness_m": 31.94,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 11203.3
+    },
+    {
+      "index": 41,
+      "row": 66,
+      "col": 80,
+      "easting_m": -56280.0,
+      "northing_m": 33000.0,
+      "elevation_m": -1655.0,
+      "slope_deg": 9.3,
+      "roughness_m": 31.93,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 11444.4
+    },
+    {
+      "index": 42,
+      "row": 67,
+      "col": 81,
+      "easting_m": -56040.0,
+      "northing_m": 32760.0,
+      "elevation_m": -1606.0,
+      "slope_deg": 8.78,
+      "roughness_m": 30.41,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 11787.4
+    },
+    {
+      "index": 43,
+      "row": 68,
+      "col": 82,
+      "easting_m": -55800.0,
+      "northing_m": 32520.0,
+      "elevation_m": -1571.0,
+      "slope_deg": 7.41,
+      "roughness_m": 25.63,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 12128.6
+    },
+    {
+      "index": 44,
+      "row": 69,
+      "col": 83,
+      "easting_m": -55560.0,
+      "northing_m": 32280.0,
+      "elevation_m": -1552.0,
+      "slope_deg": 6.74,
+      "roughness_m": 23.18,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 12468.5
+    },
+    {
+      "index": 45,
+      "row": 70,
+      "col": 84,
+      "easting_m": -55320.0,
+      "northing_m": 32040.0,
+      "elevation_m": -1541.5,
+      "slope_deg": 5.82,
+      "roughness_m": 20.54,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 12808.1
+    },
+    {
+      "index": 46,
+      "row": 71,
+      "col": 84,
+      "easting_m": -55320.0,
+      "northing_m": 31800.0,
+      "elevation_m": -1519.0,
+      "slope_deg": 5.88,
+      "roughness_m": 20.53,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 13049.2
+    },
+    {
+      "index": 47,
+      "row": 72,
+      "col": 85,
+      "easting_m": -55080.0,
+      "northing_m": 31560.0,
+      "elevation_m": -1485.5,
+      "slope_deg": 7.26,
+      "roughness_m": 25.39,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 13390.2
+    },
+    {
+      "index": 48,
+      "row": 73,
+      "col": 86,
+      "easting_m": -54840.0,
+      "northing_m": 31320.0,
+      "elevation_m": -1439.0,
+      "slope_deg": 8.56,
+      "roughness_m": 29.37,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 13732.8
+    },
+    {
+      "index": 49,
+      "row": 74,
+      "col": 87,
+      "easting_m": -54600.0,
+      "northing_m": 31080.0,
+      "elevation_m": -1392.5,
+      "slope_deg": 8.66,
+      "roughness_m": 29.77,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 14075.4
+    },
+    {
+      "index": 50,
+      "row": 75,
+      "col": 88,
+      "easting_m": -54360.0,
+      "northing_m": 30840.0,
+      "elevation_m": -1346.5,
+      "slope_deg": 7.77,
+      "roughness_m": 26.82,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 14417.9
+    },
+    {
+      "index": 51,
+      "row": 76,
+      "col": 89,
+      "easting_m": -54120.0,
+      "northing_m": 30600.0,
+      "elevation_m": -1312.5,
+      "slope_deg": 6.29,
+      "roughness_m": 22.24,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 14759.0
+    },
+    {
+      "index": 52,
+      "row": 77,
+      "col": 90,
+      "easting_m": -53880.0,
+      "northing_m": 30360.0,
+      "elevation_m": -1279.0,
+      "slope_deg": 6.58,
+      "roughness_m": 23.45,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 15100.1
+    },
+    {
+      "index": 53,
+      "row": 78,
+      "col": 91,
+      "easting_m": -53640.0,
+      "northing_m": 30120.0,
+      "elevation_m": -1235.5,
+      "slope_deg": 8.17,
+      "roughness_m": 28.84,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 15442.3
+    },
+    {
+      "index": 54,
+      "row": 79,
+      "col": 92,
+      "easting_m": -53400.0,
+      "northing_m": 29880.0,
+      "elevation_m": -1186.0,
+      "slope_deg": 9.63,
+      "roughness_m": 33.87,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 15785.3
+    },
+    {
+      "index": 55,
+      "row": 79,
+      "col": 93,
+      "easting_m": -53160.0,
+      "northing_m": 29880.0,
+      "elevation_m": -1146.5,
+      "slope_deg": 10.24,
+      "roughness_m": 36.13,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 16028.5
+    },
+    {
+      "index": 56,
+      "row": 79,
+      "col": 94,
+      "easting_m": -52920.0,
+      "northing_m": 29880.0,
+      "elevation_m": -1106.5,
+      "slope_deg": 10.91,
+      "roughness_m": 38.84,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 16271.8
+    },
+    {
+      "index": 57,
+      "row": 79,
+      "col": 95,
+      "easting_m": -52680.0,
+      "northing_m": 29880.0,
+      "elevation_m": -1069.0,
+      "slope_deg": 11.11,
+      "roughness_m": 38.6,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 16514.7
+    },
+    {
+      "index": 58,
+      "row": 80,
+      "col": 96,
+      "easting_m": -52440.0,
+      "northing_m": 29640.0,
+      "elevation_m": -1009.5,
+      "slope_deg": 8.49,
+      "roughness_m": 30.53,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 16859.3
+    },
+    {
+      "index": 59,
+      "row": 81,
+      "col": 97,
+      "easting_m": -52200.0,
+      "northing_m": 29400.0,
+      "elevation_m": -967.0,
+      "slope_deg": 6.55,
+      "roughness_m": 22.67,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 17201.4
+    },
+    {
+      "index": 60,
+      "row": 82,
+      "col": 98,
+      "easting_m": -51960.0,
+      "northing_m": 29160.0,
+      "elevation_m": -935.5,
+      "slope_deg": 5.26,
+      "roughness_m": 18.03,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 17542.2
+    },
+    {
+      "index": 61,
+      "row": 83,
+      "col": 99,
+      "easting_m": -51720.0,
+      "northing_m": 28920.0,
+      "elevation_m": -911.0,
+      "slope_deg": 3.04,
+      "roughness_m": 11.45,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 17882.5
+    },
+    {
+      "index": 62,
+      "row": 84,
+      "col": 100,
+      "easting_m": -51480.0,
+      "northing_m": 28680.0,
+      "elevation_m": -904.0,
+      "slope_deg": 1.2,
+      "roughness_m": 4.31,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 18222.0
+    },
+    {
+      "index": 63,
+      "row": 85,
+      "col": 101,
+      "easting_m": -51240.0,
+      "northing_m": 28440.0,
+      "elevation_m": -897.0,
+      "slope_deg": 0.33,
+      "roughness_m": 2.26,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 18561.5
+    },
+    {
+      "index": 64,
+      "row": 85,
+      "col": 102,
+      "easting_m": -51000.0,
+      "northing_m": 28440.0,
+      "elevation_m": -898.0,
+      "slope_deg": 0.41,
+      "roughness_m": 2.5,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 18801.5
+    },
+    {
+      "index": 65,
+      "row": 85,
+      "col": 103,
+      "easting_m": -50760.0,
+      "northing_m": 28440.0,
+      "elevation_m": -894.0,
+      "slope_deg": 2.21,
+      "roughness_m": 9.48,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 19041.5
+    },
+    {
+      "index": 66,
+      "row": 86,
+      "col": 104,
+      "easting_m": -50520.0,
+      "northing_m": 28200.0,
+      "elevation_m": -868.5,
+      "slope_deg": 6.13,
+      "roughness_m": 21.82,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 19381.9
+    },
+    {
+      "index": 67,
+      "row": 87,
+      "col": 105,
+      "easting_m": -50280.0,
+      "northing_m": 27960.0,
+      "elevation_m": -825.5,
+      "slope_deg": 8.12,
+      "roughness_m": 28.52,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 19724.0
+    },
+    {
+      "index": 68,
+      "row": 87,
+      "col": 106,
+      "easting_m": -50040.0,
+      "northing_m": 27960.0,
+      "elevation_m": -797.5,
+      "slope_deg": 8.83,
+      "roughness_m": 29.87,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 19965.6
+    },
+    {
+      "index": 69,
+      "row": 88,
+      "col": 107,
+      "easting_m": -49800.0,
+      "northing_m": 27720.0,
+      "elevation_m": -751.0,
+      "slope_deg": 6.43,
+      "roughness_m": 22.93,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 20308.2
+    },
+    {
+      "index": 70,
+      "row": 88,
+      "col": 108,
+      "easting_m": -49560.0,
+      "northing_m": 27720.0,
+      "elevation_m": -728.5,
+      "slope_deg": 4.28,
+      "roughness_m": 15.68,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 20549.3
+    },
+    {
+      "index": 71,
+      "row": 89,
+      "col": 109,
+      "easting_m": -49320.0,
+      "northing_m": 27480.0,
+      "elevation_m": -714.5,
+      "slope_deg": 1.8,
+      "roughness_m": 7.01,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 20889.0
+    },
+    {
+      "index": 72,
+      "row": 90,
+      "col": 110,
+      "easting_m": -49080.0,
+      "northing_m": 27240.0,
+      "elevation_m": -707.0,
+      "slope_deg": 2.86,
+      "roughness_m": 9.6,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 21228.5
+    },
+    {
+      "index": 73,
+      "row": 90,
+      "col": 111,
+      "easting_m": -48840.0,
+      "northing_m": 27240.0,
+      "elevation_m": -703.0,
+      "slope_deg": 3.93,
+      "roughness_m": 13.95,
+      "hazard_class": 1,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 21468.5
+    },
+    {
+      "index": 74,
+      "row": 90,
+      "col": 112,
+      "easting_m": -48600.0,
+      "northing_m": 27240.0,
+      "elevation_m": -687.5,
+      "slope_deg": 5.91,
+      "roughness_m": 21.17,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 21709.0
+    },
+    {
+      "index": 75,
+      "row": 90,
+      "col": 113,
+      "easting_m": -48360.0,
+      "northing_m": 27240.0,
+      "elevation_m": -668.0,
+      "slope_deg": 7.83,
+      "roughness_m": 27.77,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 21949.8
+    },
+    {
+      "index": 76,
+      "row": 90,
+      "col": 114,
+      "easting_m": -48120.0,
+      "northing_m": 27240.0,
+      "elevation_m": -646.0,
+      "slope_deg": 9.21,
+      "roughness_m": 31.48,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 22190.8
+    },
+    {
+      "index": 77,
+      "row": 90,
+      "col": 115,
+      "easting_m": -47880.0,
+      "northing_m": 27240.0,
+      "elevation_m": -617.5,
+      "slope_deg": 9.95,
+      "roughness_m": 34.82,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 22432.5
+    },
+    {
+      "index": 78,
+      "row": 90,
+      "col": 116,
+      "easting_m": -47640.0,
+      "northing_m": 27240.0,
+      "elevation_m": -591.5,
+      "slope_deg": 10.99,
+      "roughness_m": 38.02,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 22673.9
+    },
+    {
+      "index": 79,
+      "row": 90,
+      "col": 117,
+      "easting_m": -47400.0,
+      "northing_m": 27240.0,
+      "elevation_m": -563.0,
+      "slope_deg": 11.74,
+      "roughness_m": 40.26,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 22915.6
+    },
+    {
+      "index": 80,
+      "row": 90,
+      "col": 118,
+      "easting_m": -47160.0,
+      "northing_m": 27240.0,
+      "elevation_m": -534.0,
+      "slope_deg": 11.33,
+      "roughness_m": 39.32,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 23157.3
+    },
+    {
+      "index": 81,
+      "row": 90,
+      "col": 119,
+      "easting_m": -46920.0,
+      "northing_m": 27240.0,
+      "elevation_m": -507.0,
+      "slope_deg": 11.14,
+      "roughness_m": 38.77,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 23398.8
+    },
+    {
+      "index": 82,
+      "row": 90,
+      "col": 120,
+      "easting_m": -46680.0,
+      "northing_m": 27240.0,
+      "elevation_m": -473.5,
+      "slope_deg": 11.48,
+      "roughness_m": 40.12,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 23641.2
+    },
+    {
+      "index": 83,
+      "row": 90,
+      "col": 121,
+      "easting_m": -46440.0,
+      "northing_m": 27240.0,
+      "elevation_m": -437.0,
+      "slope_deg": 11.21,
+      "roughness_m": 39.05,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 23883.9
+    },
+    {
+      "index": 84,
+      "row": 90,
+      "col": 122,
+      "easting_m": -46200.0,
+      "northing_m": 27240.0,
+      "elevation_m": -406.5,
+      "slope_deg": 10.95,
+      "roughness_m": 37.63,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 24125.9
+    },
+    {
+      "index": 85,
+      "row": 90,
+      "col": 123,
+      "easting_m": -45960.0,
+      "northing_m": 27240.0,
+      "elevation_m": -378.0,
+      "slope_deg": 10.64,
+      "roughness_m": 37.13,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 24367.5
+    },
+    {
+      "index": 86,
+      "row": 90,
+      "col": 124,
+      "easting_m": -45720.0,
+      "northing_m": 27240.0,
+      "elevation_m": -359.5,
+      "slope_deg": 11.1,
+      "roughness_m": 38.42,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 24608.3
+    },
+    {
+      "index": 87,
+      "row": 90,
+      "col": 125,
+      "easting_m": -45480.0,
+      "northing_m": 27240.0,
+      "elevation_m": -329.0,
+      "slope_deg": 11.5,
+      "roughness_m": 39.92,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 24850.2
+    },
+    {
+      "index": 88,
+      "row": 90,
+      "col": 126,
+      "easting_m": -45240.0,
+      "northing_m": 27240.0,
+      "elevation_m": -312.0,
+      "slope_deg": 11.42,
+      "roughness_m": 39.49,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 25090.8
+    },
+    {
+      "index": 89,
+      "row": 90,
+      "col": 127,
+      "easting_m": -45000.0,
+      "northing_m": 27240.0,
+      "elevation_m": -292.5,
+      "slope_deg": 11.25,
+      "roughness_m": 38.95,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 25331.6
+    },
+    {
+      "index": 90,
+      "row": 90,
+      "col": 128,
+      "easting_m": -44760.0,
+      "northing_m": 27240.0,
+      "elevation_m": -277.5,
+      "slope_deg": 10.54,
+      "roughness_m": 36.38,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 25572.0
+    },
+    {
+      "index": 91,
+      "row": 90,
+      "col": 129,
+      "easting_m": -44520.0,
+      "northing_m": 27240.0,
+      "elevation_m": -263.5,
+      "slope_deg": 9.75,
+      "roughness_m": 33.98,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 25812.4
+    },
+    {
+      "index": 92,
+      "row": 90,
+      "col": 130,
+      "easting_m": -44280.0,
+      "northing_m": 27240.0,
+      "elevation_m": -248.0,
+      "slope_deg": 9.46,
+      "roughness_m": 33.19,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 26052.9
+    },
+    {
+      "index": 93,
+      "row": 90,
+      "col": 131,
+      "easting_m": -44040.0,
+      "northing_m": 27240.0,
+      "elevation_m": -234.0,
+      "slope_deg": 10.21,
+      "roughness_m": 35.66,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 26293.4
+    },
+    {
+      "index": 94,
+      "row": 90,
+      "col": 132,
+      "easting_m": -43800.0,
+      "northing_m": 27240.0,
+      "elevation_m": -216.5,
+      "slope_deg": 11.49,
+      "roughness_m": 39.21,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 26534.0
+    },
+    {
+      "index": 95,
+      "row": 90,
+      "col": 133,
+      "easting_m": -43560.0,
+      "northing_m": 27240.0,
+      "elevation_m": -190.5,
+      "slope_deg": 11.08,
+      "roughness_m": 39.34,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 26775.4
+    },
+    {
+      "index": 96,
+      "row": 90,
+      "col": 134,
+      "easting_m": -43320.0,
+      "northing_m": 27240.0,
+      "elevation_m": -176.0,
+      "slope_deg": 8.95,
+      "roughness_m": 31.93,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 27015.8
+    },
+    {
+      "index": 97,
+      "row": 90,
+      "col": 135,
+      "easting_m": -43080.0,
+      "northing_m": 27240.0,
+      "elevation_m": -157.5,
+      "slope_deg": 7.36,
+      "roughness_m": 25.94,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 27256.5
+    },
+    {
+      "index": 98,
+      "row": 91,
+      "col": 136,
+      "easting_m": -42840.0,
+      "northing_m": 27000.0,
+      "elevation_m": -115.5,
+      "slope_deg": 7.95,
+      "roughness_m": 27.3,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 27598.5
+    },
+    {
+      "index": 99,
+      "row": 92,
+      "col": 137,
+      "easting_m": -42600.0,
+      "northing_m": 26760.0,
+      "elevation_m": -70.5,
+      "slope_deg": 7.79,
+      "roughness_m": 26.94,
+      "hazard_class": 2,
+      "is_shadow": false,
+      "battery_soc_pct": 100.0,
+      "cumulative_dist_m": 27940.9
+    }
+  ],
+  "path_coordinates": [
+    [
+      39,
+      50
+    ],
+    [
+      40,
+      51
+    ],
+    [
+      41,
+      52
+    ],
+    [
+      42,
+      52
+    ],
+    [
+      43,
+      53
+    ],
+    [
+      44,
+      53
+    ],
+    [
+      45,
+      53
+    ],
+    [
+      46,
+      53
+    ],
+    [
+      47,
+      54
+    ],
+    [
+      48,
+      54
+    ],
+    [
+      49,
+      55
+    ],
+    [
+      50,
+      56
+    ],
+    [
+      51,
+      57
+    ],
+    [
+      52,
+      58
+    ],
+    [
+      53,
+      59
+    ],
+    [
+      54,
+      60
+    ],
+    [
+      55,
+      61
+    ],
+    [
+      56,
+      62
+    ],
+    [
+      57,
+      63
+    ],
+    [
+      58,
+      63
+    ],
+    [
+      59,
+      63
+    ],
+    [
+      60,
+      63
+    ],
+    [
+      61,
+      63
+    ],
+    [
+      62,
+      63
+    ],
+    [
+      63,
+      64
+    ],
+    [
+      64,
+      64
+    ],
+    [
+      65,
+      64
+    ],
+    [
+      66,
+      64
+    ],
+    [
+      67,
+      64
+    ],
+    [
+      68,
+      64
+    ],
+    [
+      69,
+      64
+    ],
+    [
+      70,
+      65
+    ],
+    [
+      71,
+      65
+    ],
+    [
+      72,
+      66
+    ],
+    [
+      73,
+      66
+    ],
+    [
+      74,
+      66
+    ],
+    [
+      75,
+      66
+    ],
+    [
+      76,
+      66
+    ],
+    [
+      77,
+      66
+    ],
+    [
+      78,
+      66
+    ],
+    [
+      79,
+      66
+    ],
+    [
+      80,
+      66
+    ],
+    [
+      81,
+      67
+    ],
+    [
+      82,
+      68
+    ],
+    [
+      83,
+      69
+    ],
+    [
+      84,
+      70
+    ],
+    [
+      84,
+      71
+    ],
+    [
+      85,
+      72
+    ],
+    [
+      86,
+      73
+    ],
+    [
+      87,
+      74
+    ],
+    [
+      88,
+      75
+    ],
+    [
+      89,
+      76
+    ],
+    [
+      90,
+      77
+    ],
+    [
+      91,
+      78
+    ],
+    [
+      92,
+      79
+    ],
+    [
+      93,
+      79
+    ],
+    [
+      94,
+      79
+    ],
+    [
+      95,
+      79
+    ],
+    [
+      96,
+      80
+    ],
+    [
+      97,
+      81
+    ],
+    [
+      98,
+      82
+    ],
+    [
+      99,
+      83
+    ],
+    [
+      100,
+      84
+    ],
+    [
+      101,
+      85
+    ],
+    [
+      102,
+      85
+    ],
+    [
+      103,
+      85
+    ],
+    [
+      104,
+      86
+    ],
+    [
+      105,
+      87
+    ],
+    [
+      106,
+      87
+    ],
+    [
+      107,
+      88
+    ],
+    [
+      108,
+      88
+    ],
+    [
+      109,
+      89
+    ],
+    [
+      110,
+      90
+    ],
+    [
+      111,
+      90
+    ],
+    [
+      112,
+      90
+    ],
+    [
+      113,
+      90
+    ],
+    [
+      114,
+      90
+    ],
+    [
+      115,
+      90
+    ],
+    [
+      116,
+      90
+    ],
+    [
+      117,
+      90
+    ],
+    [
+      118,
+      90
+    ],
+    [
+      119,
+      90
+    ],
+    [
+      120,
+      90
+    ],
+    [
+      121,
+      90
+    ],
+    [
+      122,
+      90
+    ],
+    [
+      123,
+      90
+    ],
+    [
+      124,
+      90
+    ],
+    [
+      125,
+      90
+    ],
+    [
+      126,
+      90
+    ],
+    [
+      127,
+      90
+    ],
+    [
+      128,
+      90
+    ],
+    [
+      129,
+      90
+    ],
+    [
+      130,
+      90
+    ],
+    [
+      131,
+      90
+    ],
+    [
+      132,
+      90
+    ],
+    [
+      133,
+      90
+    ],
+    [
+      134,
+      90
+    ],
+    [
+      135,
+      90
+    ],
+    [
+      136,
+      91
+    ],
+    [
+      137,
+      92
+    ]
+  ]
+}

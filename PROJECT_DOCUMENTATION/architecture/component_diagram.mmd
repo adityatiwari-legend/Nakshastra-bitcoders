@@ -1,0 +1,96 @@
+%% component_diagram.mmd
+%% LunaSafe — component/module dependency diagram.
+%% Arrows show actual Python `import` relationships (VERIFIED by grepping import statements).
+
+flowchart LR
+    MAIN["main.py<br/>(orchestrator, CLI)"]
+
+    subgraph SHARED["Shared library modules"]
+        CONFIG["config.py<br/>no first-party imports"]
+        IOU["io_utils.py"]
+        PSR["psr.py"]
+        TERR["terrain.py"]
+        HAZ["hazard.py"]
+        MAP["mapping.py"]
+        VAL["validate.py"]
+        MLR["ml_recommender.py"]
+    end
+
+    subgraph WEB_LAYER["Web layer"]
+        WS["web_server.py<br/>LunaSafeHandler"]
+        EWD["export_web_data.py"]
+        MR["mission_report.py"]
+    end
+
+    subgraph TOOLING["Standalone tooling"]
+        PLD["prepare_lola_dataset.py"]
+        BUI["build_interactive_ui.py"]
+    end
+
+    subgraph TESTS["tests/ (pytest)"]
+        T["9 test modules,<br/>32 test functions"]
+    end
+
+    subgraph FRONTEND["Browser"]
+        APP["web/app.js"]
+        IDX["web/index.html"]
+    end
+
+    CONFIG --> IOU
+    CONFIG --> PSR
+    CONFIG --> TERR
+    CONFIG --> HAZ
+    CONFIG --> MAP
+    CONFIG --> VAL
+    CONFIG --> MLR
+    CONFIG --> EWD
+    CONFIG --> MR
+    CONFIG --> PLD
+
+    IOU --> PSR
+    IOU --> TERR
+    IOU --> HAZ
+    IOU --> EWD
+    HAZ --> VAL
+    HAZ --> MAP
+
+    MAIN --> IOU
+    MAIN --> PSR
+    MAIN --> TERR
+    MAIN --> HAZ
+    MAIN --> MAP
+    MAIN --> VAL
+    MAIN --> MLR
+
+    WS --> CONFIG
+    WS --> IOU
+    WS --> HAZ
+    WS --> VAL
+    WS --> MLR
+    WS --> EWD
+    WS -.->|subprocess run| MAIN
+    WS -.->|import on demand| MR
+    WS -.->|import on demand| PLD
+
+    EWD --> IOU
+    BUI --> EWD
+
+    T --> CONFIG
+    T --> IOU
+    T --> PSR
+    T --> TERR
+    T --> HAZ
+    T --> MAP
+    T --> VAL
+    T --> MLR
+    T --> MAIN
+
+    APP -->|HTTP fetch| WS
+    IDX --> APP
+
+    classDef shared fill:#123,stroke:#6af,color:#fff
+    classDef web fill:#132,stroke:#3d8,color:#fff
+    classDef test fill:#231,stroke:#8d4,color:#fff
+    class CONFIG shared
+    class WS,EWD,MR web
+    class T test

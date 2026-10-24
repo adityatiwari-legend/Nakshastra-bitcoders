@@ -1,0 +1,410 @@
+{
+  "status": "SUCCESS",
+  "generated_at": "2026-10-23T23:54:09",
+  "active_dataset": "artemis_nobile_rim_2",
+  "count": 21,
+  "artifacts": [
+    {
+      "id": "aspect_deg.tif",
+      "filename": "aspect_deg.tif",
+      "title": "Terrain Aspect Raster (deg)",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:58",
+      "size_bytes": 278266,
+      "tags": [
+        "aspect",
+        "raster",
+        "geotiff",
+        "topography"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/aspect_deg.tif",
+      "saved": false
+    },
+    {
+      "id": "boulder_hazard.tif",
+      "filename": "boulder_hazard.tif",
+      "title": "Boulder Micro-Hazard Probability Raster",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:11:00",
+      "size_bytes": 295664,
+      "tags": [
+        "boulder",
+        "hazard",
+        "raster",
+        "geotiff"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/boulder_hazard.tif",
+      "saved": false
+    },
+    {
+      "id": "hazard_classes.tif",
+      "filename": "hazard_classes.tif",
+      "title": "Hazard Classification Raster (0-4)",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:59",
+      "size_bytes": 9286,
+      "tags": [
+        "hazard",
+        "raster",
+        "geotiff",
+        "classes"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/hazard_classes.tif",
+      "saved": false
+    },
+    {
+      "id": "hazard_summary.csv",
+      "filename": "hazard_summary.csv",
+      "title": "Hazard Area Summary Table",
+      "type": "data",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:10:47",
+      "size_bytes": 326,
+      "tags": [
+        "hazard",
+        "summary",
+        "csv",
+        "table"
+      ],
+      "preview_kind": "csv",
+      "thumbnail_url": null,
+      "download_url": "/outputs/hazard_summary.csv",
+      "saved": false
+    },
+    {
+      "id": "landing_sites.json",
+      "filename": "landing_sites.json",
+      "title": "Candidate Landing Sites Telemetry",
+      "type": "data",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:50:00",
+      "size_bytes": 2225,
+      "tags": [
+        "landing",
+        "sites",
+        "json",
+        "recommendations"
+      ],
+      "preview_kind": "json",
+      "thumbnail_url": null,
+      "download_url": "/outputs/landing_sites.json",
+      "saved": false
+    },
+    {
+      "id": "lunasafe_hazard_map.pdf",
+      "filename": "lunasafe_hazard_map.pdf",
+      "title": "4-Panel Hazard Map (Vector PDF)",
+      "type": "map",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:10:59",
+      "size_bytes": 894728,
+      "tags": [
+        "map",
+        "hazard",
+        "publication",
+        "pdf"
+      ],
+      "preview_kind": "pdf",
+      "thumbnail_url": null,
+      "download_url": "/outputs/lunasafe_hazard_map.pdf",
+      "saved": false
+    },
+    {
+      "id": "lunasafe_hazard_map.png",
+      "filename": "lunasafe_hazard_map.png",
+      "title": "4-Panel Hazard Publication Map",
+      "type": "map",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:10:53",
+      "size_bytes": 2618948,
+      "tags": [
+        "map",
+        "hazard",
+        "publication",
+        "png"
+      ],
+      "preview_kind": "image",
+      "thumbnail_url": "/outputs/lunasafe_hazard_map.png",
+      "download_url": "/outputs/lunasafe_hazard_map.png",
+      "saved": false
+    },
+    {
+      "id": "mission_report.pdf",
+      "filename": "mission_report.pdf",
+      "title": "PDF Mission Report",
+      "type": "report",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-22T12:14:20",
+      "size_bytes": 1091646,
+      "tags": [
+        "report",
+        "mission",
+        "certification",
+        "pdf"
+      ],
+      "preview_kind": "pdf",
+      "thumbnail_url": null,
+      "download_url": "/api/download/mission_report.pdf",
+      "saved": false
+    },
+    {
+      "id": "psr_binary.tif",
+      "filename": "psr_binary.tif",
+      "title": "Binary PSR Mask Raster",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:59",
+      "size_bytes": 3456,
+      "tags": [
+        "psr",
+        "shadow",
+        "raster",
+        "geotiff"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/psr_binary.tif",
+      "saved": false
+    },
+    {
+      "id": "psr_polygons.geojson",
+      "filename": "psr_polygons.geojson",
+      "title": "PSR Vector Polygons (GeoJSON)",
+      "type": "vector",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:50:00",
+      "size_bytes": 40946,
+      "tags": [
+        "psr",
+        "shadow",
+        "vector",
+        "geojson",
+        "polygons"
+      ],
+      "preview_kind": "geojson",
+      "thumbnail_url": null,
+      "download_url": "/outputs/psr_polygons.geojson",
+      "saved": false
+    },
+    {
+      "id": "psr_polygons.shp",
+      "filename": "psr_polygons.shp",
+      "title": "Psr Polygons (Shapefile)",
+      "type": "vector",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:10:44",
+      "size_bytes": 21744,
+      "tags": [
+        "shapefile",
+        "vector"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/psr_polygons.shp",
+      "saved": false
+    },
+    {
+      "id": "psr_polygons_bundle.zip",
+      "filename": "psr_polygons_bundle.zip",
+      "title": "PSR Shapefile Bundle (ZIP)",
+      "type": "vector",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-22T12:14:20",
+      "size_bytes": 2720,
+      "tags": [
+        "psr",
+        "shadow",
+        "vector",
+        "shapefile",
+        "zip"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/psr_polygons_bundle.zip",
+      "saved": false
+    },
+    {
+      "id": "roughness_std_m.tif",
+      "filename": "roughness_std_m.tif",
+      "title": "Elevation Roughness Raster (m)",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:58",
+      "size_bytes": 281031,
+      "tags": [
+        "roughness",
+        "raster",
+        "geotiff",
+        "topography"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/roughness_std_m.tif",
+      "saved": false
+    },
+    {
+      "id": "roughness_tri_m.tif",
+      "filename": "roughness_tri_m.tif",
+      "title": "Triangle Roughness Raster (m)",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:58",
+      "size_bytes": 283139,
+      "tags": [
+        "roughness",
+        "raster",
+        "geotiff",
+        "topography"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/roughness_tri_m.tif",
+      "saved": false
+    },
+    {
+      "id": "rover_traverse.json",
+      "filename": "rover_traverse.json",
+      "title": "Active Rover Traverse Route",
+      "type": "route",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:50:53",
+      "size_bytes": 17240,
+      "tags": [
+        "rover",
+        "route",
+        "traverse",
+        "json"
+      ],
+      "preview_kind": "json",
+      "thumbnail_url": null,
+      "download_url": "/outputs/rover_traverse.json",
+      "saved": false
+    },
+    {
+      "id": "slope_deg.tif",
+      "filename": "slope_deg.tif",
+      "title": "Horn Slope Raster (deg)",
+      "type": "raster",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:58",
+      "size_bytes": 285100,
+      "tags": [
+        "slope",
+        "raster",
+        "geotiff",
+        "topography"
+      ],
+      "preview_kind": "info",
+      "thumbnail_url": null,
+      "download_url": "/outputs/slope_deg.tif",
+      "saved": false
+    },
+    {
+      "id": "slope_sensitivity.png",
+      "filename": "slope_sensitivity.png",
+      "title": "Slope Threshold Sensitivity Chart",
+      "type": "chart",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T15:11:00",
+      "size_bytes": 192750,
+      "tags": [
+        "sensitivity",
+        "slope",
+        "chart",
+        "png"
+      ],
+      "preview_kind": "image",
+      "thumbnail_url": "/outputs/slope_sensitivity.png",
+      "download_url": "/outputs/slope_sensitivity.png",
+      "saved": false
+    },
+    {
+      "id": "terrain_histograms.png",
+      "filename": "terrain_histograms.png",
+      "title": "Terrain Property Histograms",
+      "type": "chart",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-23T23:49:59",
+      "size_bytes": 594477,
+      "tags": [
+        "histogram",
+        "statistics",
+        "chart",
+        "png"
+      ],
+      "preview_kind": "image",
+      "thumbnail_url": "/outputs/terrain_histograms.png",
+      "download_url": "/outputs/terrain_histograms.png",
+      "saved": false
+    },
+    {
+      "id": "saved_routes/route_alpha_to_sunlit_20261022_001508.json",
+      "filename": "route_alpha_to_sunlit_20261022_001508.json",
+      "title": "Test Save Route",
+      "type": "route",
+      "dataset": "lola_crop",
+      "date": "2026-10-22T00:15:08",
+      "size_bytes": 26715,
+      "tags": [
+        "rover",
+        "route",
+        "traverse",
+        "json",
+        "saved"
+      ],
+      "preview_kind": "json",
+      "thumbnail_url": null,
+      "download_url": "/outputs/saved_routes/route_alpha_to_sunlit_20261022_001508.json",
+      "saved": true
+    },
+    {
+      "id": "saved_routes/route_custom_to_custom_20261022_120743.json",
+      "filename": "route_custom_to_custom_20261022_120743.json",
+      "title": "Rover Traverse \u2014 custom \u2192 custom (50.03 km)",
+      "type": "route",
+      "dataset": "artemis_nobile_rim_2",
+      "date": "2026-10-22T12:07:43",
+      "size_bytes": 69083,
+      "tags": [
+        "rover",
+        "route",
+        "traverse",
+        "json",
+        "saved"
+      ],
+      "preview_kind": "json",
+      "thumbnail_url": null,
+      "download_url": "/outputs/saved_routes/route_custom_to_custom_20261022_120743.json",
+      "saved": true
+    },
+    {
+      "id": "saved_routes/route_custom_to_custom_20261023_234919.json",
+      "filename": "route_custom_to_custom_20261023_234919.json",
+      "title": "Rover Traverse \u2014 custom \u2192 custom (53.23 km)",
+      "type": "route",
+      "dataset": "lola_crop",
+      "date": "2026-10-23T23:49:19",
+      "size_bytes": 74067,
+      "tags": [
+        "rover",
+        "route",
+        "traverse",
+        "json",
+        "saved"
+      ],
+      "preview_kind": "json",
+      "thumbnail_url": null,
+      "download_url": "/outputs/saved_routes/route_custom_to_custom_20261023_234919.json",
+      "saved": true
+    }
+  ]
+}

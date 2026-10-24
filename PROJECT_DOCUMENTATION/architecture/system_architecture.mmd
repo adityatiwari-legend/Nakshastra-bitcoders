@@ -1,0 +1,91 @@
+%% system_architecture.mmd
+%% LunaSafe — high-level system architecture (VERIFIED against source, 2026-10-17)
+%% Render with any Mermaid-capable viewer (GitHub, VS Code extension, mermaid.live).
+
+flowchart TB
+    subgraph INPUT["Input data (data/)"]
+        DEM["data/synthetic_dem.tif<br/>or data/lola_south_pole_dem.tif<br/>(GeoTIFF, lunar polar stereographic)"]
+        PSRMASK["data/synthetic_psr.tif<br/>or data/lola_psr_mask.tif<br/>(binary PSR mask)"]
+        JP2["data/ldem_75s_240m.jp2<br/>(NASA PDS LOLA, optional)"]
+    end
+
+    subgraph CORE["Deterministic processing core (shared by CLI and web)"]
+        CFG["config.py<br/>ALL thresholds, paths, CRS, colours"]
+        IO["io_utils.py<br/>read/write GeoTIFF, CRS guard,<br/>grid alignment, synthetic generator"]
+        PSR["psr.py<br/>binarise, despeckle,<br/>area, vectorise"]
+        TERR["terrain.py<br/>Horn slope/aspect,<br/>roughness std, TRI"]
+        HAZ["hazard.py<br/>H = 0.50S+0.30R+0.20D<br/>5-class surface + hard overrides"]
+        MAP["mapping.py<br/>4-panel 300 DPI PNG/PDF"]
+        VAL["validate.py<br/>9-rule audit, sensitivity,<br/>PSR metrics"]
+        AUTO["ml_recommender.py<br/>Top-3 ellipses + boulder bandpass"]
+    end
+
+    subgraph ENTRY["Entry points"]
+        MAIN["main.py<br/>CLI: 7-phase pipeline<br/>python main.py"]
+        SERVER["web_server.py<br/>ThreadingHTTPServer :8050"]
+        REPORT["mission_report.py<br/>2-page PDF (on demand)"]
+        TOOLS["export_web_data.py<br/>prepare_lola_dataset.py<br/>build_interactive_ui.py"]
+    end
+
+    subgraph WEB["Web Mission Control (browser)"]
+        HTML["web/index.html — 8 tabs"]
+        JS["web/app.js — canvas 2D studio,<br/>three.js 3D terrain, sliders"]
+        CSS["web/styles.css"]
+        VEND["web/vendor/three.min.js (r128),<br/>OrbitControls.js"]
+        CDN["CDN: KaTeX 0.16.8, Google Fonts<br/>(optional, degrade gracefully)"]
+    end
+
+    subgraph OUT["Generated artifacts (outputs/)"]
+        RASTERS["*.tif — psr_binary, slope, aspect,<br/>roughness std/TRI, hazard_classes,<br/>boulder_hazard"]
+        VECTORS["psr_polygons.geojson / .shp bundle"]
+        FIGS["terrain_histograms.png,<br/>lunasafe_hazard_map.png/.pdf,<br/>slope_sensitivity.png"]
+        TABULAR["hazard_summary.csv,<br/>landing_sites.json"]
+        BUNDLE["web_data.json (flat arrays for UI)"]
+        PDF["mission_report.pdf"]
+    end
+
+    EXT["External: NASA PDS (one ~10 MB JP2 GET)<br/>web_server.py:633"]
+
+    DEM --> MAIN
+    PSRMASK --> MAIN
+    MAIN --> IO
+    JP2 -.->|optional download| EXT
+    EXT -.-> JP2
+
+    IO --> PSR --> HAZ
+    IO --> TERR --> HAZ
+    CFG -.->|constants| IO
+    CFG -.->|constants| PSR
+    CFG -.->|constants| TERR
+    CFG -.->|constants| HAZ
+    CFG -.->|constants| VAL
+    CFG -.->|constants| AUTO
+    CFG -.->|constants| MAP
+
+    HAZ --> MAP
+    HAZ --> VAL
+    HAZ --> AUTO
+    HAZ --> REPORT
+    MAP --> REPORT
+
+    MAIN --> RASTERS
+    MAIN --> VECTORS
+    MAIN --> FIGS
+    MAIN --> TABULAR
+    TOOLS --> BUNDLE
+    REPORT --> PDF
+
+    SERVER -->|imports same modules| HAZ
+    SERVER -->|imports same modules| VAL
+    SERVER -->|imports same modules| AUTO
+    SERVER -->|subprocess| MAIN
+    SERVER -->|static files| HTML
+    HTML --> JS
+    JS --> CSS
+    JS --> VEND
+    JS -.-> CDN
+    SERVER -->|GET /api/data| BUNDLE
+    JS -->|POST /api/recalculate| SERVER
+    JS -->|GET /api/status, /api/logs, /api/audit| SERVER
+    SERVER -->|GET /api/download/*| FIGS
+    SERVER -->|GET /api/download/*| PDF

@@ -1,0 +1,176 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_peak_cabeus_b",
+        "name": "Peak near Cabeus B",
+        "center_lat": -83.5732,
+        "center_lon": -69.085,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -69.085,
+          -83.5732
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_haworth",
+        "name": "Haworth",
+        "center_lat": -86.792,
+        "center_lon": -22.9474,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -22.9474,
+          -86.792
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_malapert_massif",
+        "name": "Malapert Massif",
+        "center_lat": -86.0434,
+        "center_lon": 0.1514,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          0.1514,
+          -86.0434
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_mons_mouton",
+        "name": "Mons Mouton",
+        "center_lat": -85.3955,
+        "center_lon": 31.1899,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.1899,
+          -85.3955
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_mons_mouton_plateau",
+        "name": "Mons Mouton Plateau",
+        "center_lat": -84.5061,
+        "center_lon": 30.5135,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5135,
+          -84.5061
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_nobile_rim_1",
+        "name": "Nobile Rim 1",
+        "center_lat": -85.1876,
+        "center_lon": 37.2379,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.2379,
+          -85.1876
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_nobile_rim_2",
+        "name": "Nobile Rim 2",
+        "center_lat": -83.8864,
+        "center_lon": 58.4089,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          58.4089,
+          -83.8864
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_de_gerlache_rim_2",
+        "name": "de Gerlache Rim 2",
+        "center_lat": -88.3691,
+        "center_lon": -67.4597,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -67.4597,
+          -88.3691
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "region_id": "artemis_slater_plain",
+        "name": "Slater Plain",
+        "center_lat": -87.2013,
+        "center_lon": 126.5711,
+        "source": "NASA Artemis III down-select (Oct 2024); centers = mean of Wueller et al. (2026) Table A1 CLS coordinates",
+        "official": true,
+        "removed_2024": false
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          126.5711,
+          -87.2013
+        ]
+      }
+    }
+  ]
+}

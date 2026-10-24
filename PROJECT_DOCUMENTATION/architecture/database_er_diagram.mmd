@@ -1,0 +1,79 @@
+%% database_er_diagram.mmd
+%% IMPORTANT: LunaSafe has NO database (VERIFIED — no SQL/ORM/NoSQL import anywhere).
+%% This diagram therefore models the on-disk FILE data model and the JSON "schemas",
+%% which are the only persistence the application has.
+
+erDiagram
+    DEM_RASTER ||--o{ DERIVED_RASTER : "same grid (transform+crs+shape)"
+
+    DEM_RASTER {
+        string path "data/synthetic_dem.tif | data/lola_south_pole_dem.tif"
+        string format "GeoTIFF, 1 band, LZW"
+        string crs "Lunar South Pole Polar Stereographic (+R=1737400)"
+        number pixel_size_m "20.0 synthetic | 240.0 LOLA"
+        number shape "200x200 synthetic | 250x250 LOLA"
+        number nodata "-9999.0"
+        string tags "PROJECT, DATA_TYPE, BODY"
+    }
+
+    PSR_INPUT {
+        string path "data/synthetic_psr.tif | data/lola_psr_mask.tif"
+        string dtype "uint8 (0/1)"
+        string alignment "must match DEM grid; else reprojected (io_utils.align_psr_to_dem)"
+    }
+
+    DERIVED_RASTER {
+        string path "outputs/*.tif"
+        string members "psr_binary, slope_deg, aspect_deg, roughness_std_m, roughness_tri_m, hazard_classes, boulder_hazard"
+        string crs "inherited from DEM"
+        string tags "PROJECT, DATA_TYPE, BODY, METRIC, UNITS"
+    }
+
+    HAZARD_SUMMARY {
+        string path "outputs/hazard_summary.csv"
+        string columns "class_id, class_name, pixel_count, area_m2, area_km2, pct_valid_terrain, pct_total_raster"
+        number rows "5 (classes 1,2,3,4,0)"
+        string producer "hazard.generate_hazard_summary_table (hazard.py:137)"
+    }
+
+    PSR_VECTOR {
+        string path "outputs/psr_polygons.geojson + .shp/.shx/.dbf/.prj/.cpg"
+        string properties "poly_id, feature, area_m2, area_km2, perim_m, provenance"
+        string producer "psr.vectorize_psr_to_polygons (psr.py:115)"
+    }
+
+    LANDING_SITES_JSON {
+        string path "outputs/landing_sites.json"
+        string top_level "status, top_sites[], total_sites_identified, target_ellipse_radius_m, evaluation_crs, boulder_obstacles_detected, boulder_points_sample[30]"
+        string site_fields "rank, name, designation, row, col, easting_m, northing_m, elevation_m, suitability_pct, clearance_radius_m, ellipse_*, mean_slope_deg, max_slope_deg, mean_roughness_m, dist_to_psr_m, status, mission_role"
+        string producer "ml_recommender.run_mission_autonomy (ml_recommender.py:218)"
+    }
+
+    WEB_DATA_BUNDLE {
+        string path "outputs/web_data.json"
+        string header "width, height, pixel_size_x, pixel_size_y, bounds{l,r,b,t}, nodata, defaults{}"
+        array arrays "dem[], slope[], roughness[], psr[], psr_reference[], hazard_classes[], boulder_hazard[]  (all width*height long)"
+        object embeds "psr_polygons (GeoJSON), landing_sites[], boulder_points[]"
+        string producer "export_web_data.export_data_bundle (export_web_data.py:11)"
+        string consumers "GET /api/data -> web/app.js"
+    }
+
+    FIGURES {
+        string paths "terrain_histograms.png, lunasafe_hazard_map.png/.pdf, slope_sensitivity.png"
+        number dpi "300 (config.PLOT_DPI)"
+        string producers "terrain.py:199, mapping.py:149, validate.py:151"
+    }
+
+    MISSION_PDF {
+        string path "outputs/mission_report.pdf"
+        number pages "2"
+        string producer "mission_report.generate_pdf_mission_report (mission_report.py:22)"
+        string trigger "GET /api/download/mission_report.pdf (web_server.py:793)"
+    }
+
+    DEM_RASTER ||--|| HAZARD_SUMMARY : "class areas derived from hazard raster on DEM grid"
+    PSR_INPUT ||--o{ PSR_VECTOR : "binarised + cleaned + vectorised"
+    DERIVED_RASTER ||--|| WEB_DATA_BUNDLE : "flattened to JSON arrays"
+    LANDING_SITES_JSON ||--o| WEB_DATA_BUNDLE : "embedded as landing_sites/boulder_points"
+    PSR_VECTOR ||--o| WEB_DATA_BUNDLE : "embedded as psr_polygons"
+    HAZARD_SUMMARY ||--o| MISSION_PDF : "table on page 2"

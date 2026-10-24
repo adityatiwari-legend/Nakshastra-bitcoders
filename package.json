@@ -1,0 +1,11 @@
+{
+  "name": "lunasafe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LunaSafe / OrbisLuna - lunar landing hazard analysis platform. Dependency-free vanilla JS front-end + stdlib Python server; this package.json only provides zero-dependency verification scripts.",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "lint": "node scripts/build.js --lint",
+    "test": "node --test \"tests/js/*.test.js\" && node scripts/run-pytest.js"
+  }
+}

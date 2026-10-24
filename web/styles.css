@@ -4595,6 +4595,223 @@ h3 [data-lucide] {
   gap: 0.5rem;
 }
 
+/* 3D LIDAR Scanning Animation Overlay */
+.site-3d-scan-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(6, 18, 36, 0.88), rgba(2, 6, 14, 0.94));
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 12;
+  pointer-events: none;
+  animation: fadeInScan 0.3s ease-out;
+}
+
+@keyframes fadeInScan {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.scan-overlay-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+}
+
+.scan-radar-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px dashed rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 24px rgba(0, 229, 255, 0.3), inset 0 0 16px rgba(0, 229, 255, 0.15);
+  animation: radarSpin 4s linear infinite;
+}
+
+@keyframes radarSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.scan-radar-sweep {
+  position: absolute;
+  top: calc(50% - 32px);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0, 229, 255, 0.5) 0deg, transparent 90deg);
+  animation: radarSpin 2s linear infinite;
+  pointer-events: none;
+}
+
+.scan-title {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #67e8f9;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+}
+
+.scan-progress-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.scan-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00e5ff, #10b981, #22c55e);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.8);
+  border-radius: 3px;
+  transition: width 0.15s ease-out;
+}
+
+.scan-status-text {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.68rem;
+  color: #cbd5e1;
+  letter-spacing: 0.02em;
+}
+
+/* Real-time Touchdown / Placement HUD in 3D Mount */
+.site-3d-touchdown-hud {
+  position: absolute;
+  top: 48px;
+  left: 12px;
+  background: rgba(11, 20, 36, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 229, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  z-index: 8;
+  max-width: 290px;
+  animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.touchdown-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.touchdown-hud-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.touchdown-hud-metrics div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.touchdown-hud-metrics b {
+  font-family: var(--font-mono, monospace);
+  color: #fff;
+}
+
+/* Landing Zones List in Dossier */
+.landing-zones-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.landing-zone-item {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.landing-zone-item:hover {
+  background: rgba(0, 229, 255, 0.1);
+  border-color: rgba(0, 229, 255, 0.4);
+}
+
+.landing-zone-item.perfect {
+  border-color: rgba(16, 185, 129, 0.6);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+/* Recommended Alternative Site Alert & Divert Card */
+.recommended-divert-card {
+  margin-top: 0.65rem;
+  background: linear-gradient(145deg, rgba(30, 18, 10, 0.85), rgba(45, 20, 15, 0.9));
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  animation: pulseWarningBorder 3s infinite alternate;
+}
+
+@keyframes pulseWarningBorder {
+  from { border-color: rgba(245, 158, 11, 0.5); box-shadow: 0 0 12px rgba(245, 158, 11, 0.2); }
+  to { border-color: rgba(239, 68, 68, 0.7); box-shadow: 0 0 20px rgba(239, 68, 68, 0.35); }
+}
+
+.divert-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.3rem;
+}
+
+.divert-desc {
+  font-size: 0.68rem;
+  color: #e2e8f0;
+  line-height: 1.4;
+  margin: 0 0 0.45rem;
+}
+
+.divert-target-box {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.72rem;
+}
+
 @media (max-width: 900px) {
   .site-inspection-body {
     grid-template-columns: 1fr;

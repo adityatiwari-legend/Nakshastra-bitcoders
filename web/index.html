@@ -548,11 +548,11 @@
           <!-- 2. Candidate Landing Sites -->
           <div class="lunar-card">
             <div class="lunar-card-header">
-              <div class="lunar-card-title"><span><i data-lucide="target"></i></span> Candidate Sites</div>
+              <div class="lunar-card-title"><span><i data-lucide="target"></i></span> Candidate Sites (40m Buffer)</div>
               <button class="btn btn-secondary" style="padding: 0.12rem 0.35rem; font-size: 0.6rem;" onclick="switchTab('landingSitesTab', document.querySelectorAll('.tab-btn')[5])">All Sites</button>
             </div>
             <div id="mcCandidateCardsList" style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <div class="candidate-rank-card" onclick="focusCandidateOnMoon('Alpha')">
+              <div class="candidate-rank-card" onclick="openCandidateSite3D('Alpha')" role="button" tabindex="0" title="Click to 3D scan landing clearance and place Lander Module">
                 <div class="candidate-card-top">
                   <span class="candidate-rank-pill">#1 PRIMARY</span>
                   <span class="candidate-score">81.6%</span>
@@ -560,12 +560,12 @@
                 <div style="font-size: 0.72rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem;">Site Alpha (Connecting Ridge)</div>
                 <div class="candidate-metrics-row">
                   <span>Slope: <b>0.33°</b></span>
+                  <span>40m Buffer: <b>Certified</b></span>
                   <span>Clearance: <b>3.2 km</b></span>
-                  <span>Elev: <b>-1,766 m</b></span>
                 </div>
               </div>
 
-              <div class="candidate-rank-card" onclick="focusCandidateOnMoon('Beta')">
+              <div class="candidate-rank-card" onclick="openCandidateSite3D('Beta')" role="button" tabindex="0" title="Click to 3D scan landing clearance and place Lander Module">
                 <div class="candidate-card-top">
                   <span class="candidate-rank-pill" style="color: var(--color-caution); border-color: rgba(255, 181, 46, 0.4); background: rgba(255, 181, 46, 0.15);">#2 BACKUP</span>
                   <span class="candidate-score">79.2%</span>
@@ -573,8 +573,8 @@
                 <div style="font-size: 0.72rem; font-weight: 700; color: #fff; margin-bottom: 0.15rem;">Site Beta (Ridge Flank)</div>
                 <div class="candidate-metrics-row">
                   <span>Slope: <b>0.35°</b></span>
+                  <span>40m Buffer: <b>Certified</b></span>
                   <span>Clearance: <b>2.9 km</b></span>
-                  <span>Elev: <b>-1,765 m</b></span>
                 </div>
               </div>
             </div>
@@ -2798,10 +2798,40 @@
               <span>Generating High-Resolution 3D Terrain Mesh...</span>
             </div>
 
+            <!-- 3D LIDAR / Radar Scanning Animation Overlay -->
+            <div id="site3dScanOverlay" class="site-3d-scan-overlay" style="display: none;">
+              <div class="scan-overlay-content">
+                <div class="scan-radar-ring"></div>
+                <div class="scan-radar-sweep"></div>
+                <div class="scan-title"><i data-lucide="satellite"></i> <span>AUTONOMOUS 3D TOUCHDOWN &amp; 40M BUFFER SCAN</span></div>
+                <div class="scan-progress-wrap">
+                  <div class="scan-progress-bar" id="site3dScanProgressBar" style="width: 0%;"></div>
+                </div>
+                <div class="scan-status-text" id="site3dScanStatusText">Initializing High-Resolution 3D Altimetry Grid...</div>
+              </div>
+            </div>
+
+            <!-- Real-time Touchdown / Placement HUD -->
+            <div id="site3dTouchdownHud" class="site-3d-touchdown-hud" style="display: none;">
+              <div class="touchdown-hud-header">
+                <span id="site3dTouchdownMode"><i data-lucide="crosshair"></i> TARGETING LANDER MODULE</span>
+                <span id="site3dTouchdownScoreBadge" class="status-badge badge-connected">94.2% FIT</span>
+              </div>
+              <div class="touchdown-hud-metrics">
+                <div><span>Touchdown Slope:</span> <b id="site3dTouchdownSlope">1.2° (PASS)</b></div>
+                <div><span>40m Buffer Standoff:</span> <b id="site3dTouchdownBuffer">100% CLEAR</b></div>
+                <div><span>Safety Status:</span> <b id="site3dTouchdownVerdict" style="color:var(--color-safe);">CERTIFIED TO LAND</b></div>
+              </div>
+            </div>
+
             <!-- Viewport Overlay HUD Header -->
             <div class="site-3d-hud-top">
               <span class="site-3d-tag"><i data-lucide="mountain"></i> <span id="site3dMeshResolution">NASA LOLA 240m/px Topography</span></span>
-              <div style="display: flex; gap: 0.35rem;">
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                <button class="site-3d-btn" id="btnSite3dRescan" onclick="startSite3dScanAnimation()" title="Rescan 3D terrain and 40m landing clearance buffer"><i data-lucide="scan"></i> Scan 40m Buffer</button>
+                <button class="site-3d-btn" id="btnSite3dLanderPlacement" onclick="toggleSite3dManualLanderPlacement()" title="Click on 3D terrain to choose landing location for Lander Module"><i data-lucide="crosshair"></i> Place Lander</button>
+                <button class="site-3d-btn active" id="btnSite3dFindPerfectSpot" onclick="findAndHighlightPerfectLandingSpot()" title="Auto-detect optimal landing spot with 40m buffer"><i data-lucide="target"></i> Perfect Spot</button>
+                <button class="site-3d-btn" id="btnSite3dTestHazard" onclick="testNoViableLandingSpotScenario()" title="Simulate high-slope condition to test recommended site fallback"><i data-lucide="alert-triangle"></i> Test Contingency</button>
                 <button class="site-3d-btn" id="btnSite3dWireframe" onclick="toggleSite3dWireframe()" title="Toggle wireframe topology"><i data-lucide="layers"></i> Wireframe</button>
                 <button class="site-3d-btn" id="btnSite3dAutoRotate" onclick="toggleSite3dAutoRotate()" title="Toggle auto-orbit spin"><i data-lucide="refresh-cw"></i> Spin</button>
                 <button class="site-3d-btn" onclick="resetSite3dCamera()" title="Reset 3D camera angle"><i data-lucide="rotate-ccw"></i></button>
@@ -2843,12 +2873,38 @@
         <div class="site-inspection-info-col">
           <!-- Overview Dossier -->
           <div class="site-dossier-card">
-            <div class="site-dossier-label"><i data-lucide="file-text"></i> Site Description & Strategic Value</div>
+            <div class="site-dossier-label"><i data-lucide="file-text"></i> Site Description &amp; Strategic Value</div>
             <p id="siteInspectionDesc" class="site-dossier-text">
               Broad cryogenic south-polar crater hosting persistent volatile cold traps and strategic rim crests.
             </p>
             <div id="siteInspectionSciVal" class="site-dossier-highlight">
               Optimal communications line-of-sight to Earth with accessible volatile cold traps.
+            </div>
+          </div>
+
+          <!-- 40m Buffer Touchdown Intelligence Card -->
+          <div class="site-dossier-card" id="siteLandingBufferCard" style="border-left: 3px solid var(--color-safe);">
+            <div class="site-dossier-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="display:flex; align-items:center; gap:0.35rem;"><i data-lucide="shield-check"></i> 40-Meter Buffer Touchdown Clearance</span>
+              <span id="siteLandingBufferBadge" class="status-badge badge-connected" style="font-size:0.58rem;">40M BUFFER CERTIFIED</span>
+            </div>
+            <div id="siteLandingStatusReport" style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 0.45rem;">
+              Autonomous scan evaluated terrain against 40m buffer clearance and &lt;5.0° slope limit.
+            </div>
+            <div class="landing-zones-list" id="siteLandingZonesList">
+              <!-- Populated dynamically with viable landing sectors and perfect spot telemetry -->
+            </div>
+            <!-- Recommended Site Alternative Alert (Shown if no viable spot exists) -->
+            <div id="siteRecommendedDivertCard" class="recommended-divert-card" style="display: none;">
+              <div class="divert-title"><i data-lucide="alert-triangle"></i> NO VIABLE 40M-BUFFER SPOT AT CURRENT SITE</div>
+              <p class="divert-desc">Surrounding topography breaches the mandatory 40m clearance buffer (&gt;15° slope or relief &gt;5m).</p>
+              <div class="divert-target-box">
+                <div><b>RECOMMENDED ALTERNATIVE SITE:</b> <span id="siteDivertTargetName" style="color:var(--color-cyan); font-weight:700;">Site Alpha (Connecting Ridge)</span></div>
+                <div style="font-size:0.68rem; color:var(--text-muted); margin-top:0.2rem;">Certified 40m clear buffer • Mean slope 0.33° • 3.2 km standoff from hazards</div>
+              </div>
+              <button class="btn btn-primary" id="btnDivertToRecommended" onclick="divertToRecommendedSite('Alpha')" style="width:100%; justify-content:center; margin-top:0.5rem; font-weight:700;">
+                <i data-lucide="navigation"></i> Divert Lander to Recommended Site: Site Alpha
+              </button>
             </div>
           </div>
 

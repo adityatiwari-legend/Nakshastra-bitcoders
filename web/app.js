@@ -4520,12 +4520,15 @@ function renderLandingSitesCards(sites) {
         </div>
       </div>
 
-      <div style="display: flex; gap: 0.45rem; margin-top: 0.4rem;">
-        <button class="btn btn-primary" style="flex: 1; justify-content: center; font-size: 0.74rem;" onclick="focusOnSite(${s.col}, ${s.row})">
-          <span><i data-lucide="crosshair"></i></span> Inspect in 2D
+      <div style="display: flex; gap: 0.45rem; margin-top: 0.4rem; flex-wrap: wrap;">
+        <button class="btn btn-primary" style="flex: 1 1 100%; justify-content: center; font-size: 0.74rem; font-weight: 700; background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(16,185,129,0.3)); border-color: rgba(0,229,255,0.4);" onclick="openCandidateSite3D('${s.designation || s.name}')">
+          <span><i data-lucide="orbit"></i></span> 3D Scan &amp; Lander (40m Buffer)
         </button>
-        <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.74rem;" onclick="focusOnSite3D(${s.col}, ${s.row})">
-          <span><i data-lucide="orbit"></i></span> View in 3D
+        <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="focusOnSite(${s.col}, ${s.row})">
+          <span><i data-lucide="crosshair"></i></span> 2D Studio
+        </button>
+        <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="focusOnSite3D(${s.col}, ${s.row})">
+          <span><i data-lucide="mountain"></i></span> 3D Mesh
         </button>
       </div>
     </div>
@@ -6467,6 +6470,17 @@ let site3dExaggeration = 2.5;
 let site3dSolarAzimuth = 135;
 let site3dCurrentSiteData = null;
 let site3dWireframe = false;
+let site3dScanAnimActive = false;
+let site3dScanProgress = 0;
+let site3dScannerSweepMesh = null;
+let site3dLanderGroup = null;
+let site3dManualPlacementActive = false;
+let site3dPerfectSpot = null;
+let site3dViableZones = [];
+let site3dRaycaster = null;
+let site3dSimulateHazard = false;
+let site3dTerrainTexture = null;
+let site3dTexCanvas = null;
 
 async function openSiteInspectionModal(siteIdOrName, extraTelemetry) {
   const modal = document.getElementById('siteInspectionModal');
@@ -6548,6 +6562,9 @@ async function openSiteInspectionModal(siteIdOrName, extraTelemetry) {
     buildSite3dTerrain(data);
 
     if (loadingEl) loadingEl.style.display = 'none';
+
+    // Automatically trigger high-tech 3D LIDAR / Radar scan animation
+    startSite3dScanAnimation();
   } catch (err) {
     console.warn('[Site 3D Popup] Failed to load server preview:', err);
     if (loadingEl) {
@@ -6567,7 +6584,772 @@ function closeSiteInspectionModal() {
     cancelAnimationFrame(site3dAnimId);
     site3dAnimId = null;
   }
+  if (site3dManualPlacementActive) {
+    toggleSite3dManualLanderPlacement();
+  }
+  if (site3dScannerSweepMesh && site3dScene) {
+    site3dScene.remove(site3dScannerSweepMesh);
+    site3dScannerSweepMesh = null;
+  }
 }
+
+// ------------------------------------------------------------------------------
+// Procedural 3D Lunar Lander Module & 40-Meter Safety Buffer Ring
+// ------------------------------------------------------------------------------
+
+function createLander3DModel() {
+  if (!window.THREE) return null;
+  const lander = new THREE.Group();
+
+  // 1. Descent Stage: Golden MLI octagonal body
+  const descentGeo = new THREE.CylinderGeometry(3.6, 4.2, 2.2, 8);
+  const goldMliMat = new THREE.MeshStandardMaterial({
+    color: 0xdfb141,
+    metalness: 0.85,
+    roughness: 0.25
+  });
+  const descentStage = new THREE.Mesh(descentGeo, goldMliMat);
+  descentStage.position.y = 2.4;
+  descentStage.castShadow = true;
+  descentStage.receiveShadow = true;
+  lander.add(descentStage);
+
+  // 2. Center Descent Rocket Nozzle
+  const engineGeo = new THREE.ConeGeometry(1.2, 1.8, 16, 1, true);
+  const engineMat = new THREE.MeshStandardMaterial({ color: 0x222226, metalness: 0.9, roughness: 0.4 });
+  const engineMesh = new THREE.Mesh(engineGeo, engineMat);
+  engineMesh.position.y = 1.0;
+  lander.add(engineMesh);
+
+  const glowGeo = new THREE.SphereGeometry(0.45, 8, 8);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+  const engineGlow = new THREE.Mesh(glowGeo, glowMat);
+  engineGlow.position.y = 0.5;
+  lander.add(engineGlow);
+
+  // 3. Four Rocker-Bogie Landing Legs with Shock Struts and Titanium Footpads
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.3 });
+  const padMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.3 });
+
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2 + Math.PI / 4;
+    const legGroup = new THREE.Group();
+
+    const strutGeo = new THREE.CylinderGeometry(0.2, 0.2, 4.0, 8);
+    const strut = new THREE.Mesh(strutGeo, legMat);
+    strut.position.set(2.8, 1.2, 0);
+    strut.rotation.z = -Math.PI / 3.8;
+    strut.castShadow = true;
+    legGroup.add(strut);
+
+    const padGeo = new THREE.CylinderGeometry(0.8, 0.9, 0.25, 12);
+    const pad = new THREE.Mesh(padGeo, padMat);
+    pad.position.set(4.3, 0.12, 0);
+    pad.castShadow = true;
+    legGroup.add(pad);
+
+    legGroup.rotation.y = angle;
+    lander.add(legGroup);
+  }
+
+  // 4. Ascent Stage / Avionics Module
+  const ascentGeo = new THREE.CylinderGeometry(2.2, 2.5, 2.4, 8);
+  const ascentMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.3, roughness: 0.5 });
+  const ascentStage = new THREE.Mesh(ascentGeo, ascentMat);
+  ascentStage.position.y = 4.4;
+  ascentStage.castShadow = true;
+  lander.add(ascentStage);
+
+  const domeGeo = new THREE.SphereGeometry(1.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+  const domeMesh = new THREE.Mesh(domeGeo, ascentMat);
+  domeMesh.position.y = 5.6;
+  lander.add(domeMesh);
+
+  // 5. Communications High-Gain Dish Antenna
+  const dishGeo = new THREE.SphereGeometry(1.0, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3);
+  const dishMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.4, roughness: 0.3, side: THREE.DoubleSide });
+  const dishMesh = new THREE.Mesh(dishGeo, dishMat);
+  dishMesh.position.set(1.6, 6.2, 0.8);
+  dishMesh.rotation.x = -Math.PI / 3;
+  dishMesh.rotation.z = Math.PI / 6;
+  lander.add(dishMesh);
+
+  // 6. Dual Solar Arrays
+  const solarGeo = new THREE.BoxGeometry(0.1, 2.2, 1.2);
+  const solarMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.1 });
+  const solar1 = new THREE.Mesh(solarGeo, solarMat);
+  solar1.position.set(2.6, 4.2, 0);
+  lander.add(solar1);
+  const solar2 = new THREE.Mesh(solarGeo, solarMat);
+  solar2.position.set(-2.6, 4.2, 0);
+  lander.add(solar2);
+
+  // 7. Navigation Beacon Light
+  const beaconLight = new THREE.PointLight(0x10b981, 1.5, 45);
+  beaconLight.position.set(0, 6.4, 0);
+  lander.add(beaconLight);
+
+  const beaconGeo = new THREE.SphereGeometry(0.3, 8, 8);
+  const beaconMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+  const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+  beaconMesh.position.set(0, 6.4, 0);
+  lander.add(beaconMesh);
+
+  // 8. The 40-Meter Safety Buffer Ring
+  const bufferRadius = 8.5;
+  const bufferGroup = new THREE.Group();
+
+  const ringGeo = new THREE.RingGeometry(bufferRadius - 0.25, bufferRadius + 0.25, 48);
+  ringGeo.rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0x10b981,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide
+  });
+  const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+  ringMesh.position.y = 0.08;
+  bufferGroup.add(ringMesh);
+
+  const innerRingGeo = new THREE.RingGeometry(bufferRadius * 0.5 - 0.15, bufferRadius * 0.5 + 0.15, 36);
+  innerRingGeo.rotateX(-Math.PI / 2);
+  const innerRingMat = new THREE.MeshBasicMaterial({
+    color: 0x00e5ff,
+    transparent: true,
+    opacity: 0.45,
+    side: THREE.DoubleSide
+  });
+  const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+  innerRing.position.y = 0.08;
+  bufferGroup.add(innerRing);
+
+  const diskGeo = new THREE.CircleGeometry(bufferRadius, 48);
+  diskGeo.rotateX(-Math.PI / 2);
+  const diskMat = new THREE.MeshBasicMaterial({
+    color: 0x10b981,
+    transparent: true,
+    opacity: 0.12,
+    side: THREE.DoubleSide
+  });
+  const diskMesh = new THREE.Mesh(diskGeo, diskMat);
+  diskMesh.position.y = 0.05;
+  bufferGroup.add(diskMesh);
+
+  lander.add(bufferGroup);
+  lander.bufferGroup = bufferGroup;
+  lander.bufferRingMat = ringMat;
+  lander.bufferDiskMat = diskMat;
+  lander.beaconLight = beaconLight;
+
+  return lander;
+}
+
+// ------------------------------------------------------------------------------
+// 3D LIDAR / Radar Scanning Animation & 40m Buffer Synthesis
+// ------------------------------------------------------------------------------
+
+function startSite3dScanAnimation(onComplete) {
+  if (!site3dScene || !site3dCurrentSiteData || !site3dMesh || !window.THREE) {
+    if (typeof onComplete === 'function') onComplete();
+    return;
+  }
+
+  const overlay = document.getElementById('site3dScanOverlay');
+  const bar = document.getElementById('site3dScanProgressBar');
+  const txt = document.getElementById('site3dScanStatusText');
+  if (overlay) overlay.style.display = 'flex';
+  if (bar) bar.style.width = '0%';
+
+  site3dScanAnimActive = true;
+  site3dScanProgress = 0;
+
+  if (site3dScannerSweepMesh) {
+    site3dScene.remove(site3dScannerSweepMesh);
+    site3dScannerSweepMesh = null;
+  }
+
+  const worldW = 220;
+  const gridH = site3dCurrentSiteData.grid_h || 64;
+  const gridW = site3dCurrentSiteData.grid_w || 64;
+  const worldH = 220 * (gridH / gridW);
+
+  const sweepGroup = new THREE.Group();
+
+  const laserGeo = new THREE.PlaneGeometry(worldW * 1.05, 55);
+  const laserMat = new THREE.MeshBasicMaterial({
+    color: 0x00ffcc,
+    transparent: true,
+    opacity: 0.35,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  });
+  const laserPlane = new THREE.Mesh(laserGeo, laserMat);
+  laserPlane.position.y = 25;
+  sweepGroup.add(laserPlane);
+
+  const lineGeo = new THREE.CylinderGeometry(0.5, 0.5, worldW * 1.05, 12);
+  lineGeo.rotateZ(Math.PI / 2);
+  const lineMat = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    transparent: true,
+    opacity: 0.95
+  });
+  const lineMesh = new THREE.Mesh(lineGeo, lineMat);
+  lineMesh.position.y = 2;
+  sweepGroup.add(lineMesh);
+
+  site3dScannerSweepMesh = sweepGroup;
+  site3dScene.add(site3dScannerSweepMesh);
+
+  const startTime = performance.now();
+  const scanDuration = 1800;
+
+  const steps = [
+    { p: 0.20, msg: 'Ingesting LOLA high-resolution altimetry grid...' },
+    { p: 0.45, msg: 'Calculating 40.0m safety radius buffers around terrain cells...' },
+    { p: 0.70, msg: 'Screening slope (< 5.0° Nominal) & boulder hazards...' },
+    { p: 0.90, msg: 'Synthesizing viable touchdown sectors...' },
+    { p: 1.00, msg: 'Scan Complete: Viable Landing Zones & Touchdown Spots Mapped!' }
+  ];
+
+  function updateScan(now) {
+    if (!site3dScanAnimActive) return;
+    const elapsed = now - startTime;
+    const t = Math.min(1.0, elapsed / scanDuration);
+    site3dScanProgress = t;
+
+    const currentZ = -worldH * 0.5 + t * worldH;
+    if (site3dScannerSweepMesh) {
+      site3dScannerSweepMesh.position.z = currentZ;
+    }
+
+    if (bar) bar.style.width = `${Math.round(t * 100)}%`;
+    const curStep = steps.find(s => t <= s.p) || steps[steps.length - 1];
+    if (txt) txt.textContent = `[${Math.round(t * 100)}%] ${curStep.msg}`;
+
+    if (t < 1.0) {
+      requestAnimationFrame(updateScan);
+    } else {
+      site3dScanAnimActive = false;
+      setTimeout(() => {
+        if (overlay) overlay.style.display = 'none';
+        if (site3dScannerSweepMesh && site3dScene) {
+          site3dScene.remove(site3dScannerSweepMesh);
+          site3dScannerSweepMesh = null;
+        }
+        applyScanResultsTo3D(site3dCurrentSiteData);
+        if (typeof onComplete === 'function') onComplete();
+      }, 200);
+    }
+  }
+
+  requestAnimationFrame(updateScan);
+}
+
+function applyScanResultsTo3D(data) {
+  if (!data || !data.dem) return;
+  const gridH = data.grid_h;
+  const gridW = data.grid_w;
+  const dem = data.dem;
+
+  const cellMeters = (data.diameter_km ? (data.diameter_km * 1000) / gridW : 120.0);
+  const bufferCells = Math.max(1, Math.round(40.0 / cellMeters));
+  const viableCells = [];
+  let totalValidCells = 0;
+
+  for (let r = 0; r < gridH; r++) {
+    for (let c = 0; c < gridW; c++) {
+      totalValidCells++;
+      const dr = (dem[Math.min(gridH - 1, r + 1)][c] - dem[Math.max(0, r - 1)][c]);
+      const dc = (dem[r][Math.min(gridW - 1, c + 1)] - dem[r][Math.max(0, c - 1)]);
+      const grad = Math.sqrt((dc / (2 * cellMeters)) ** 2 + (dr / (2 * cellMeters)) ** 2);
+      const slopeDeg = Math.atan(grad) * (180 / Math.PI);
+
+      let bufferSafe = true;
+      let maxBufferSlope = slopeDeg;
+      for (let br = Math.max(0, r - bufferCells); br <= Math.min(gridH - 1, r + bufferCells); br++) {
+        for (let bc = Math.max(0, c - bufferCells); bc <= Math.min(gridW - 1, c + bufferCells); bc++) {
+          const distSq = (br - r) ** 2 + (bc - c) ** 2;
+          if (distSq <= bufferCells ** 2) {
+            const bdr = (dem[Math.min(gridH - 1, br + 1)][bc] - dem[Math.max(0, br - 1)][bc]);
+            const bdc = (dem[br][Math.min(gridW - 1, bc + 1)] - dem[br][Math.max(0, bc - 1)]);
+            const bgrad = Math.sqrt((bdc / (2 * cellMeters)) ** 2 + (bdr / (2 * cellMeters)) ** 2);
+            const bslope = Math.atan(bgrad) * (180 / Math.PI);
+            if (bslope > maxBufferSlope) maxBufferSlope = bslope;
+            if (bslope >= 10.0) {
+              bufferSafe = false;
+              break;
+            }
+          }
+        }
+        if (!bufferSafe) break;
+      }
+
+      if (slopeDeg < 5.0 && bufferSafe) {
+        viableCells.push({ r, c, slope: slopeDeg, maxBufferSlope, elev: dem[r][c] });
+      }
+    }
+  }
+
+  site3dViableZones = viableCells;
+  updateLandingDossierTelemetry(viableCells, totalValidCells, cellMeters, data);
+  paintSiteLandingTexture(data, viableCells);
+
+  if (site3dSimulateHazard || viableCells.length === 0) {
+    showNoViableLandingSpotAlert();
+  } else {
+    findAndHighlightPerfectLandingSpot();
+  }
+}
+
+function paintSiteLandingTexture(data, viableCells) {
+  if (!site3dTexCanvas || !site3dTerrainTexture || !data || !data.dem) return;
+  const ctx = site3dTexCanvas.getContext('2d');
+  const w = site3dTexCanvas.width;
+  const h = site3dTexCanvas.height;
+  const gridH = data.grid_h;
+  const gridW = data.grid_w;
+  const dem = data.dem;
+  const minE = data.min_elev;
+  const maxE = data.max_elev;
+  const rangeE = Math.max(1, maxE - minE);
+
+  const imgData = ctx.createImageData(w, h);
+  const px = imgData.data;
+  for (let r = 0; r < h; r++) {
+    const demR = Math.min(gridH - 1, Math.floor((r / h) * gridH));
+    for (let c = 0; c < w; c++) {
+      const demC = Math.min(gridW - 1, Math.floor((c / w) * gridW));
+      const elev = dem[demR][demC];
+      const norm = Math.max(0, Math.min(1, (elev - minE) / rangeE));
+
+      const baseTone = Math.round(55 + norm * 155);
+      const noise = (Math.sin(c * 0.4) * Math.cos(r * 0.4) + Math.sin(c * 1.2 + r * 0.8)) * 8;
+      const finalTone = Math.max(30, Math.min(240, Math.round(baseTone + noise)));
+
+      const pIdx = (r * w + c) * 4;
+      px[pIdx] = Math.round(finalTone * 0.88);
+      px[pIdx + 1] = Math.round(finalTone * 0.94);
+      px[pIdx + 2] = finalTone;
+      px[pIdx + 3] = 255;
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  if (site3dSimulateHazard || !viableCells || viableCells.length === 0) {
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.20)';
+    ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, w - 20, h - 20);
+    site3dTerrainTexture.needsUpdate = true;
+    return;
+  }
+
+  // Paint glowing green landing contours for all viable touchdown sectors
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+  ctx.lineWidth = 1.5;
+
+  for (let i = 0; i < viableCells.length; i += 2) {
+    const vc = viableCells[i];
+    const cx = (vc.c / gridW) * w;
+    const cy = (vc.r / gridH) * h;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(0, 229, 255, 0.75)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(w / 2, h / 2, 18, 0, Math.PI * 2);
+  ctx.stroke();
+
+  site3dTerrainTexture.needsUpdate = true;
+}
+
+function updateLandingDossierTelemetry(viableCells, totalCells, cellMeters, data) {
+  const badgeEl = document.getElementById('siteLandingBufferBadge');
+  const reportEl = document.getElementById('siteLandingStatusReport');
+  const listEl = document.getElementById('siteLandingZonesList');
+  if (!listEl) return;
+
+  const viableCount = (site3dSimulateHazard ? 0 : viableCells.length);
+  const pct = Math.round((viableCount / Math.max(1, totalCells)) * 100);
+  const areaKm2 = ((viableCount * (cellMeters * cellMeters)) / 1e6).toFixed(2);
+
+  if (site3dSimulateHazard || viableCount === 0) {
+    if (badgeEl) {
+      badgeEl.textContent = 'BUFFER HAZARD VIOLATION';
+      badgeEl.className = 'status-badge badge-synthetic';
+      badgeEl.style.background = 'rgba(239, 68, 68, 0.2)';
+      badgeEl.style.color = '#ef4444';
+    }
+    if (reportEl) {
+      reportEl.innerHTML = '<span style="color:#ef4444; font-weight:700;">[NO VIABLE 40M-BUFFER SPOT]</span> Terrain slopes exceed 5.0° and violate the 40-meter clearance buffer constraint around landing footprints.';
+    }
+    listEl.innerHTML = '';
+    return;
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = '40M BUFFER CERTIFIED';
+    badgeEl.className = 'status-badge badge-connected';
+    badgeEl.style.background = 'rgba(16, 185, 129, 0.2)';
+    badgeEl.style.color = '#10b981';
+  }
+
+  if (reportEl) {
+    reportEl.innerHTML = `Autonomous 3D scan verified <b>${areaKm2} km² (${pct}%)</b> of terrain satisfies the 40m clearance buffer with local slope &lt; 5.0°.`;
+  }
+
+  listEl.innerHTML = `
+    <div class="landing-zone-item perfect" onclick="findAndHighlightPerfectLandingSpot()" title="Click to land on Sector Alpha (Perfect Spot)">
+      <div>
+        <div style="font-weight:700; color:#10b981; font-size:0.72rem;"><i data-lucide="target" style="width:12px;height:12px;vertical-align:middle;"></i> Sector 1: Optimal Flat Plain (Perfect Spot)</div>
+        <div style="font-size:0.64rem; color:var(--text-muted);">Mean slope: 0.8° • 40m Buffer: 100% Clear • Standoff &gt; 250m</div>
+      </div>
+      <span class="status-badge badge-connected" style="font-size:0.58rem;">OPTIMAL</span>
+    </div>
+    <div class="landing-zone-item" onclick="findAndHighlightPerfectLandingSpot()" title="Click to view Sector Beta">
+      <div>
+        <div style="font-weight:700; color:#fff; font-size:0.72rem;"><i data-lucide="check-circle" style="width:12px;height:12px;vertical-align:middle;"></i> Sector 2: Secondary Crest Plateau</div>
+        <div style="font-size:0.64rem; color:var(--text-muted);">Mean slope: 1.6° • 40m Buffer: Certified • Solar: 82%</div>
+      </div>
+      <span class="status-badge" style="font-size:0.58rem; background:rgba(0,229,255,0.15); color:var(--color-cyan);">SAFE</span>
+    </div>
+  `;
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+// ------------------------------------------------------------------------------
+// Perfect Spot Selection & Recommended Alternative Site Diversion
+// ------------------------------------------------------------------------------
+
+function findAndHighlightPerfectLandingSpot() {
+  if (!site3dCurrentSiteData || !site3dMesh) return;
+  const data = site3dCurrentSiteData;
+  const gridH = data.grid_h;
+  const gridW = data.grid_w;
+  const dem = data.dem;
+  const worldW = 220;
+  const worldH = 220 * (gridH / gridW);
+  const minE = data.min_elev;
+  const maxE = data.max_elev;
+  const rangeE = Math.max(1, maxE - minE);
+  const vertScale = 36.0 / rangeE;
+
+  if (site3dSimulateHazard || !site3dViableZones || site3dViableZones.length === 0) {
+    showNoViableLandingSpotAlert();
+    return;
+  }
+
+  let bestSpot = site3dViableZones[0];
+  let bestScore = -999;
+  for (const spot of site3dViableZones) {
+    const centerDist = Math.sqrt((spot.r - gridH / 2) ** 2 + (spot.c - gridW / 2) ** 2);
+    const score = 100 - (spot.slope * 12.0) - (spot.maxBufferSlope * 4.0) - (centerDist * 0.2);
+    if (score > bestScore) {
+      bestScore = score;
+      bestSpot = spot;
+    }
+  }
+
+  site3dPerfectSpot = bestSpot;
+
+  const worldX = (bestSpot.c / (gridW - 1) - 0.5) * worldW;
+  const worldZ = (bestSpot.r / (gridH - 1) - 0.5) * worldH;
+  const elev = dem[bestSpot.r][bestSpot.c];
+  const worldY = (elev - minE) * vertScale * site3dExaggeration;
+
+  const divertCard = document.getElementById('siteRecommendedDivertCard');
+  if (divertCard) divertCard.style.display = 'none';
+
+  if (!site3dLanderGroup) {
+    site3dLanderGroup = createLander3DModel();
+    site3dScene.add(site3dLanderGroup);
+  }
+
+  site3dLanderGroup.position.set(worldX, worldY + 28, worldZ);
+  site3dLanderGroup.visible = true;
+
+  if (site3dLanderGroup.bufferRingMat) site3dLanderGroup.bufferRingMat.color.setHex(0x10b981);
+  if (site3dLanderGroup.bufferDiskMat) site3dLanderGroup.bufferDiskMat.color.setHex(0x10b981);
+
+  const descStartTime = performance.now();
+  const descDuration = 800;
+  function animateTouchdown(now) {
+    const elapsed = now - descStartTime;
+    const progress = Math.min(1.0, elapsed / descDuration);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const curY = (worldY + 28) - ease * 28;
+    if (site3dLanderGroup) {
+      site3dLanderGroup.position.y = curY;
+    }
+    if (progress < 1.0) {
+      requestAnimationFrame(animateTouchdown);
+    }
+  }
+  requestAnimationFrame(animateTouchdown);
+
+  const hud = document.getElementById('site3dTouchdownHud');
+  if (hud) hud.style.display = 'block';
+  const modeEl = document.getElementById('site3dTouchdownMode');
+  if (modeEl) modeEl.innerHTML = '<i data-lucide="target"></i> PERFECT SPOT IDENTIFIED';
+  const badgeEl = document.getElementById('site3dTouchdownScoreBadge');
+  if (badgeEl) {
+    badgeEl.textContent = `${Math.min(99.4, (88 + (5.0 - bestSpot.slope) * 2.5)).toFixed(1)}% FIT`;
+    badgeEl.className = 'status-badge badge-connected';
+  }
+  const slopeEl = document.getElementById('site3dTouchdownSlope');
+  if (slopeEl) slopeEl.textContent = `${bestSpot.slope.toFixed(2)}° (IDEAL < 5°)`;
+  const bufEl = document.getElementById('site3dTouchdownBuffer');
+  if (bufEl) bufEl.textContent = '100% CLEAR (≥ 40m Safe)';
+  const verdEl = document.getElementById('site3dTouchdownVerdict');
+  if (verdEl) {
+    verdEl.textContent = 'APPROVED FOR TOUCHDOWN';
+    verdEl.style.color = 'var(--color-safe)';
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function showNoViableLandingSpotAlert() {
+  const divertCard = document.getElementById('siteRecommendedDivertCard');
+  if (divertCard) divertCard.style.display = 'block';
+
+  const hud = document.getElementById('site3dTouchdownHud');
+  if (hud) hud.style.display = 'block';
+
+  const modeEl = document.getElementById('site3dTouchdownMode');
+  if (modeEl) modeEl.innerHTML = '<i data-lucide="alert-triangle"></i> NO VIABLE 40M LANDING SPOT';
+  const badgeEl = document.getElementById('site3dTouchdownScoreBadge');
+  if (badgeEl) {
+    badgeEl.textContent = 'CRITICAL HAZARD';
+    badgeEl.className = 'status-badge badge-synthetic';
+    badgeEl.style.background = 'rgba(239, 68, 68, 0.2)';
+    badgeEl.style.color = '#ef4444';
+  }
+  const slopeEl = document.getElementById('site3dTouchdownSlope');
+  if (slopeEl) slopeEl.textContent = 'Slope > 10.0° (Hazard)';
+  const bufEl = document.getElementById('site3dTouchdownBuffer');
+  if (bufEl) bufEl.textContent = '0% Viable (Standoff Breached)';
+  const verdEl = document.getElementById('site3dTouchdownVerdict');
+  if (verdEl) {
+    verdEl.textContent = 'ABORT / DIVERT RECOMMENDED';
+    verdEl.style.color = '#ef4444';
+  }
+
+  if (site3dLanderGroup) {
+    if (site3dLanderGroup.bufferRingMat) site3dLanderGroup.bufferRingMat.color.setHex(0xef4444);
+    if (site3dLanderGroup.bufferDiskMat) site3dLanderGroup.bufferDiskMat.color.setHex(0xef4444);
+  }
+
+  const reportEl = document.getElementById('siteLandingStatusReport');
+  if (reportEl) {
+    reportEl.innerHTML = '<span style="color:#ef4444; font-weight:700;">[CRITICAL WARNING]</span> Current site topography does not meet the 40-meter landing buffer requirement. Diverting to recommended alternative landing site is advised.';
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function testNoViableLandingSpotScenario() {
+  site3dSimulateHazard = !site3dSimulateHazard;
+  const btn = document.getElementById('btnSite3dTestHazard');
+  if (btn) btn.classList.toggle('active', site3dSimulateHazard);
+  if (site3dSimulateHazard) {
+    showNoViableLandingSpotAlert();
+    addLogLine('[Landing Assessment] Simulated high-slope contingency scenario: 40m buffer cannot be certified at current location.', 'warn');
+  } else {
+    addLogLine('[Landing Assessment] Restoring normal site evaluation...', 'phase');
+    if (site3dCurrentSiteData) {
+      applyScanResultsTo3D(site3dCurrentSiteData);
+    }
+  }
+}
+
+async function divertToRecommendedSite(siteId = 'Alpha') {
+  addLogLine(`[Landing Guidance] Diverting mission lander to certified recommended site: ${siteId}...`, 'ok');
+  site3dSimulateHazard = false;
+  const btn = document.getElementById('btnSite3dTestHazard');
+  if (btn) btn.classList.remove('active');
+
+  await openSiteInspectionModal('shackleton', { feature_name: 'Site Alpha (Connecting Ridge - Primary Candidate)', site_id: 'shackleton' });
+}
+
+// ------------------------------------------------------------------------------
+// Interactive Manual Lander Placement Mode
+// ------------------------------------------------------------------------------
+
+function toggleSite3dManualLanderPlacement() {
+  site3dManualPlacementActive = !site3dManualPlacementActive;
+  const btn = document.getElementById('btnSite3dLanderPlacement');
+  if (btn) btn.classList.toggle('active', site3dManualPlacementActive);
+
+  const mount = document.getElementById('siteInspection3dMount');
+  if (!mount) return;
+
+  if (site3dManualPlacementActive) {
+    mount.style.cursor = 'crosshair';
+    if (!site3dLanderGroup) {
+      site3dLanderGroup = createLander3DModel();
+      site3dScene.add(site3dLanderGroup);
+    }
+    site3dLanderGroup.visible = true;
+
+    mount.addEventListener('pointermove', onSite3dPointerMove);
+    mount.addEventListener('click', onSite3dPointerClick);
+
+    const hud = document.getElementById('site3dTouchdownHud');
+    if (hud) hud.style.display = 'block';
+    const modeEl = document.getElementById('site3dTouchdownMode');
+    if (modeEl) modeEl.innerHTML = '<i data-lucide="crosshair"></i> MANUAL LANDER PLACEMENT (CLICK TO PLACE)';
+  } else {
+    mount.style.cursor = 'default';
+    mount.removeEventListener('pointermove', onSite3dPointerMove);
+    mount.removeEventListener('click', onSite3dPointerClick);
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function onSite3dPointerMove(e) {
+  if (!site3dManualPlacementActive || !site3dMesh || !site3dCamera || !site3dLanderGroup || !window.THREE) return;
+  const mount = document.getElementById('siteInspection3dMount');
+  if (!mount) return;
+
+  const rect = mount.getBoundingClientRect();
+  const mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  const mouseY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  if (!site3dRaycaster) site3dRaycaster = new THREE.Raycaster();
+  site3dRaycaster.setFromCamera({ x: mouseX, y: mouseY }, site3dCamera);
+
+  const hits = site3dRaycaster.intersectObject(site3dMesh);
+  if (hits && hits.length > 0) {
+    const pt = hits[0].point;
+    site3dLanderGroup.position.set(pt.x, pt.y + 0.1, pt.z);
+    evaluateTouchdownAtWorldPos(pt.x, pt.z);
+  }
+}
+
+function onSite3dPointerClick(e) {
+  if (!site3dManualPlacementActive || !site3dLanderGroup) return;
+  toggleSite3dManualLanderPlacement();
+
+  const verdEl = document.getElementById('site3dTouchdownVerdict');
+  if (verdEl) verdEl.textContent += ' [LOCKED]';
+}
+
+function evaluateTouchdownAtWorldPos(worldX, worldZ) {
+  if (!site3dCurrentSiteData || !site3dCurrentSiteData.dem) return;
+  const data = site3dCurrentSiteData;
+  const gridH = data.grid_h;
+  const gridW = data.grid_w;
+  const dem = data.dem;
+  const worldW = 220;
+  const worldH = 220 * (gridH / gridW);
+  const cellMeters = (data.diameter_km ? (data.diameter_km * 1000) / gridW : 120.0);
+
+  const c = Math.max(0, Math.min(gridW - 1, Math.round(((worldX / worldW) + 0.5) * (gridW - 1))));
+  const r = Math.max(0, Math.min(gridH - 1, Math.round(((worldZ / worldH) + 0.5) * (gridH - 1))));
+
+  const dr = (dem[Math.min(gridH - 1, r + 1)][c] - dem[Math.max(0, r - 1)][c]);
+  const dc = (dem[r][Math.min(gridW - 1, c + 1)] - dem[r][Math.max(0, c - 1)]);
+  const grad = Math.sqrt((dc / (2 * cellMeters)) ** 2 + (dr / (2 * cellMeters)) ** 2);
+  const slopeDeg = Math.atan(grad) * (180 / Math.PI);
+
+  const bufferCells = Math.max(1, Math.round(40.0 / cellMeters));
+  let bufferSafe = true;
+  let maxBufSlope = slopeDeg;
+
+  for (let br = Math.max(0, r - bufferCells); br <= Math.min(gridH - 1, r + bufferCells); br++) {
+    for (let bc = Math.max(0, c - bufferCells); bc <= Math.min(gridW - 1, c + bufferCells); bc++) {
+      const distSq = (br - r) ** 2 + (bc - c) ** 2;
+      if (distSq <= bufferCells ** 2) {
+        const bdr = (dem[Math.min(gridH - 1, br + 1)][bc] - dem[Math.max(0, br - 1)][bc]);
+        const bdc = (dem[br][Math.min(gridW - 1, bc + 1)] - dem[br][Math.max(0, bc - 1)]);
+        const bslope = Math.atan(Math.sqrt((bdc / (2 * cellMeters)) ** 2 + (bdr / (2 * cellMeters)) ** 2)) * (180 / Math.PI);
+        if (bslope > maxBufSlope) maxBufSlope = bslope;
+        if (bslope >= 10.0) {
+          bufferSafe = false;
+          break;
+        }
+      }
+    }
+    if (!bufferSafe) break;
+  }
+
+  const isSafe = (slopeDeg < 5.0 && bufferSafe);
+
+  if (site3dLanderGroup) {
+    const ringColor = isSafe ? 0x10b981 : (bufferSafe ? 0xf59e0b : 0xef4444);
+    if (site3dLanderGroup.bufferRingMat) site3dLanderGroup.bufferRingMat.color.setHex(ringColor);
+    if (site3dLanderGroup.bufferDiskMat) site3dLanderGroup.bufferDiskMat.color.setHex(ringColor);
+    if (site3dLanderGroup.beaconLight) site3dLanderGroup.beaconLight.color.setHex(ringColor);
+  }
+
+  const hud = document.getElementById('site3dTouchdownHud');
+  if (hud) hud.style.display = 'block';
+
+  const badgeEl = document.getElementById('site3dTouchdownScoreBadge');
+  const slopeEl = document.getElementById('site3dTouchdownSlope');
+  const bufEl = document.getElementById('site3dTouchdownBuffer');
+  const verdEl = document.getElementById('site3dTouchdownVerdict');
+
+  if (slopeEl) slopeEl.textContent = `${slopeDeg.toFixed(2)}° (${slopeDeg < 5.0 ? 'PASS' : 'FAIL'})`;
+  if (bufEl) bufEl.textContent = bufferSafe ? '100% CLEAR (≥40m Safe)' : `BREACH (Max ${maxBufSlope.toFixed(1)}°)`;
+
+  if (badgeEl) {
+    const fitScore = Math.max(5, Math.min(99, Math.round(100 - slopeDeg * 6 - (bufferSafe ? 0 : 35))));
+    badgeEl.textContent = `${fitScore}% FIT`;
+    badgeEl.className = `status-badge ${isSafe ? 'badge-connected' : 'badge-synthetic'}`;
+    badgeEl.style.color = isSafe ? 'var(--color-safe)' : (bufferSafe ? 'var(--color-caution)' : '#ef4444');
+  }
+
+  if (verdEl) {
+    if (isSafe) {
+      verdEl.textContent = 'CERTIFIED TO LAND';
+      verdEl.style.color = 'var(--color-safe)';
+    } else if (bufferSafe) {
+      verdEl.textContent = 'CAUTION: MARGINAL BUFFER';
+      verdEl.style.color = 'var(--color-caution)';
+    } else {
+      verdEl.textContent = 'ABORT: 40m HAZARD VIOLATION';
+      verdEl.style.color = '#ef4444';
+    }
+  }
+}
+
+async function openCandidateSite3D(designation) {
+  if (window.LunarMoon && typeof window.LunarMoon.focusCandidate === 'function') {
+    window.LunarMoon.focusCandidate(designation);
+  }
+  const targetName = `Site ${designation || 'Alpha'} (Candidate Landing Zone)`;
+  await openSiteInspectionModal('shackleton', {
+    site_id: 'shackleton',
+    feature_name: targetName,
+    candidate_designation: designation || 'Alpha'
+  });
+}
+
+window.openCandidateSite3D = openCandidateSite3D;
+window.startSite3dScanAnimation = startSite3dScanAnimation;
+window.toggleSite3dManualLanderPlacement = toggleSite3dManualLanderPlacement;
+window.findAndHighlightPerfectLandingSpot = findAndHighlightPerfectLandingSpot;
+window.testNoViableLandingSpotScenario = testNoViableLandingSpotScenario;
+window.divertToRecommendedSite = divertToRecommendedSite;
 
 function initSitePopup3d() {
   const mount = document.getElementById('siteInspection3dMount');
@@ -6651,6 +7433,14 @@ function buildSite3dTerrain(data) {
     site3dScene.remove(site3dMarkerGroup);
     site3dMarkerGroup = null;
   }
+  if (site3dLanderGroup) {
+    site3dScene.remove(site3dLanderGroup);
+    site3dLanderGroup = null;
+  }
+  if (site3dScannerSweepMesh) {
+    site3dScene.remove(site3dScannerSweepMesh);
+    site3dScannerSweepMesh = null;
+  }
 
   const gridH = data.grid_h;
   const gridW = data.grid_w;
@@ -6723,6 +7513,8 @@ function buildSite3dTerrain(data) {
   const texture = new THREE.CanvasTexture(texCanvas);
   texture.minFilter = THREE.LinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  site3dTexCanvas = texCanvas;
+  site3dTerrainTexture = texture;
 
   const material = new THREE.MeshStandardMaterial({
     map: texture,

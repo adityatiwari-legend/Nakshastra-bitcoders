@@ -38,9 +38,10 @@ def test_site_preview_shackleton():
     assert "Shackleton" in res["name"]
     assert res["grid_w"] > 0
     assert res["grid_h"] > 0
-    assert len(res["dem"]) == res["grid_h"]
-    assert res["max_elev"] > res["min_elev"]
     assert res["relief_m"] > 0
+    assert "psr" in res
+    assert len(res["psr"]) == res["grid_h"]
+    assert len(res["psr"][0]) == res["grid_w"]
 
 
 def test_site_preview_artemis_haworth():

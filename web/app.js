@@ -4516,13 +4516,16 @@ function renderLandingSitesCards(sites) {
         </div>
         <div class="stat-item">
           <div class="stat-item-label">Status</div>
-          <div class="stat-item-value" style="color: var(--color-safe); font-size: 0.78rem;">SCREENED & APPROVED</div>
+          <div class="stat-item-value" style="font-size: 0.75rem;">${(s.dist_to_psr_m !== undefined && s.dist_to_psr_m < 40) ? '<span style="color:#ef4444;font-weight:700;">HAZARD: PSR &lt; 40m</span>' : '<span style="color:var(--color-safe);font-weight:700;">APPROVED (0% PSR OVERLAP)</span>'}</div>
         </div>
       </div>
 
       <div style="display: flex; gap: 0.45rem; margin-top: 0.4rem; flex-wrap: wrap;">
-        <button class="btn btn-primary" style="flex: 1 1 100%; justify-content: center; font-size: 0.74rem; font-weight: 700; background: linear-gradient(135deg, rgba(0,229,255,0.2), rgba(16,185,129,0.3)); border-color: rgba(0,229,255,0.4);" onclick="openCandidateSite3D('${s.designation || s.name}')">
-          <span><i data-lucide="orbit"></i></span> 3D Scan &amp; Lander (40m Buffer)
+        <button class="btn btn-primary" style="flex: 1 1 100%; justify-content: center; font-size: 0.74rem; font-weight: 700; background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(0,229,255,0.25)); border-color: rgba(16,185,129,0.5);" onclick="startLandingSimulationForSite('${s.designation || s.name}')">
+          <span><i data-lucide="play"></i></span> Start Landing Simulation
+        </button>
+        <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="openCandidateSite3D('${s.designation || s.name}')">
+          <span><i data-lucide="orbit"></i></span> 3D 40m Buffer
         </button>
         <button class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 0.72rem;" onclick="focusOnSite(${s.col}, ${s.row})">
           <span><i data-lucide="crosshair"></i></span> 2D Studio
@@ -5570,6 +5573,12 @@ function switchTab(tabId, btn) {
     }, 50);
   }
 
+  if (tabId === 'landingSitesTab') {
+    setTimeout(() => {
+      initLandingSimulation();
+    }, 40);
+  }
+
   if (tabId === 'dataTab') {
     setTimeout(() => {
       validateRastersPreflight();
@@ -5858,8 +5867,8 @@ function populateLunarContextDrawer(t) {
       } else if (cls === 3) {
         dClass.textContent = 'Class 3 (Hard Unsafe)';
         dClass.style.color = 'var(--color-unsafe)';
-      } else if (cls === 4) {
-        dClass.textContent = 'Class 4 (Shadowed PSR)';
+      } else if (cls === 4 || t.psr_flag) {
+        dClass.textContent = 'Class 4 (Shadowed PSR - UNFIT FOR LANDING)';
         dClass.style.color = 'var(--color-shadow)';
       } else {
         dClass.textContent = 'Class 0 (NoData)';
@@ -5872,16 +5881,19 @@ function populateLunarContextDrawer(t) {
   }
 
   if (dIllum) {
-    dIllum.textContent = t.illumination_pct !== null ? `${t.illumination_pct.toFixed(1)}%` : '65.0%';
+    dIllum.textContent = t.illumination_pct !== null ? `${t.illumination_pct.toFixed(1)}%` : (t.psr_flag ? '0.0%' : '65.0%');
   }
 
   if (dPsr) {
-    dPsr.textContent = t.psr_flag ? 'YES (Cryogenic Trap)' : 'NO (Sunlit Peak / Floor)';
-    dPsr.style.color = t.psr_flag ? 'var(--color-shadow)' : 'var(--color-safe)';
+    dPsr.textContent = t.psr_flag ? 'YES (Cryogenic Trap - UNFIT)' : 'NO (Sunlit Peak / Floor)';
+    dPsr.style.color = t.psr_flag ? '#ef4444' : 'var(--color-safe)';
   }
 
   if (dScore) {
-    if (t.suitability_score !== null) {
+    if (t.psr_flag) {
+      dScore.textContent = '0.0% (UNFIT - PSR HAZARD)';
+      dScore.style.color = '#ef4444';
+    } else if (t.suitability_score !== null) {
       dScore.textContent = `${t.suitability_score.toFixed(1)}%`;
       dScore.style.color = t.suitability_score >= 70 ? 'var(--color-safe)' : (t.suitability_score >= 50 ? 'var(--color-caution)' : 'var(--color-unsafe)');
     } else {
@@ -5902,8 +5914,8 @@ function populateLunarContextDrawer(t) {
         <div style="color: ${roughPass ? 'var(--color-safe)' : 'var(--color-caution)'}; margin-bottom: 2px;">
           ${roughPass ? '[PASS]' : '[WARN]'} Roughness: ${t.roughness_m !== null ? t.roughness_m.toFixed(1) + 'm' : '--'} (${roughPass ? 'PASS' : 'MARGINAL'})
         </div>
-        <div style="color: ${psrPass ? 'var(--color-safe)' : 'var(--color-shadow)'};">
-          ${psrPass ? '[PASS]' : '[SHADOW]'} Solar Access: ${psrPass ? 'Sunlit peak / ridge (PASS)' : 'Cryogenic cold trap (PSR)'}
+        <div style="color: ${psrPass ? 'var(--color-safe)' : '#ef4444'}; font-weight: ${psrPass ? 'normal' : '700'};">
+          ${psrPass ? '[PASS] Solar Access: Sunlit peak / ridge (PASS)' : '[FORBIDDEN] Solar Access: Cryogenic cold trap (UNFIT FOR TOUCHDOWN)'}
         </div>
       `;
     } else {
@@ -6860,17 +6872,23 @@ function applyScanResultsTo3D(data) {
   for (let r = 0; r < gridH; r++) {
     for (let c = 0; c < gridW; c++) {
       totalValidCells++;
+      const isCellPsr = !!(data.psr && data.psr[r] && data.psr[r][c] === 1);
       const dr = (dem[Math.min(gridH - 1, r + 1)][c] - dem[Math.max(0, r - 1)][c]);
       const dc = (dem[r][Math.min(gridW - 1, c + 1)] - dem[r][Math.max(0, c - 1)]);
       const grad = Math.sqrt((dc / (2 * cellMeters)) ** 2 + (dr / (2 * cellMeters)) ** 2);
       const slopeDeg = Math.atan(grad) * (180 / Math.PI);
 
-      let bufferSafe = true;
+      let bufferSafe = !isCellPsr;
+      let psrOverlap = isCellPsr;
       let maxBufferSlope = slopeDeg;
       for (let br = Math.max(0, r - bufferCells); br <= Math.min(gridH - 1, r + bufferCells); br++) {
         for (let bc = Math.max(0, c - bufferCells); bc <= Math.min(gridW - 1, c + bufferCells); bc++) {
           const distSq = (br - r) ** 2 + (bc - c) ** 2;
           if (distSq <= bufferCells ** 2) {
+            if (data.psr && data.psr[br] && data.psr[br][bc] === 1) {
+              psrOverlap = true;
+              bufferSafe = false;
+            }
             const bdr = (dem[Math.min(gridH - 1, br + 1)][bc] - dem[Math.max(0, br - 1)][bc]);
             const bdc = (dem[br][Math.min(gridW - 1, bc + 1)] - dem[br][Math.max(0, bc - 1)]);
             const bgrad = Math.sqrt((bdc / (2 * cellMeters)) ** 2 + (bdr / (2 * cellMeters)) ** 2);
@@ -6878,14 +6896,13 @@ function applyScanResultsTo3D(data) {
             if (bslope > maxBufferSlope) maxBufferSlope = bslope;
             if (bslope >= 10.0) {
               bufferSafe = false;
-              break;
             }
           }
         }
-        if (!bufferSafe) break;
       }
 
-      if (slopeDeg < 5.0 && bufferSafe) {
+      // Strictly exclude any cell in a PSR cold trap or within its 40m standoff
+      if (slopeDeg < 5.0 && bufferSafe && !isCellPsr && !psrOverlap) {
         viableCells.push({ r, c, slope: slopeDeg, maxBufferSlope, elev: dem[r][c] });
       }
     }
@@ -6936,6 +6953,20 @@ function paintSiteLandingTexture(data, viableCells) {
   }
   ctx.putImageData(imgData, 0, 0);
 
+  // Paint PSR Cold Trap areas with distinctive cryogenic shadow color (Rule 7: Violet tint for PSR)
+  if (data.psr) {
+    ctx.fillStyle = 'rgba(142, 68, 173, 0.45)';
+    for (let r = 0; r < h; r += 2) {
+      const demR = Math.min(gridH - 1, Math.floor((r / h) * gridH));
+      for (let c = 0; c < w; c += 2) {
+        const demC = Math.min(gridW - 1, Math.floor((c / w) * gridW));
+        if (data.psr[demR] && data.psr[demR][demC] === 1) {
+          ctx.fillRect(c, r, 2, 2);
+        }
+      }
+    }
+  }
+
   if (site3dSimulateHazard || !viableCells || viableCells.length === 0) {
     ctx.fillStyle = 'rgba(239, 68, 68, 0.20)';
     ctx.fillRect(0, 0, w, h);
@@ -6946,7 +6977,7 @@ function paintSiteLandingTexture(data, viableCells) {
     return;
   }
 
-  // Paint glowing green landing contours for all viable touchdown sectors
+  // Paint glowing green landing contours for all viable touchdown sectors (strictly non-PSR)
   ctx.fillStyle = 'rgba(16, 185, 129, 0.35)';
   ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
   ctx.lineWidth = 1.5;
@@ -6988,7 +7019,7 @@ function updateLandingDossierTelemetry(viableCells, totalCells, cellMeters, data
       badgeEl.style.color = '#ef4444';
     }
     if (reportEl) {
-      reportEl.innerHTML = '<span style="color:#ef4444; font-weight:700;">[NO VIABLE 40M-BUFFER SPOT]</span> Terrain slopes exceed 5.0° and violate the 40-meter clearance buffer constraint around landing footprints.';
+      reportEl.innerHTML = '<span style="color:#ef4444; font-weight:700;">[NO VIABLE 40M-BUFFER SPOT]</span> Terrain slopes exceed 5.0° or penetrate cryogenic PSR shadow cold traps with &lt;40m clearance.';
     }
     listEl.innerHTML = '';
     return;
@@ -7002,14 +7033,14 @@ function updateLandingDossierTelemetry(viableCells, totalCells, cellMeters, data
   }
 
   if (reportEl) {
-    reportEl.innerHTML = `Autonomous 3D scan verified <b>${areaKm2} km² (${pct}%)</b> of terrain satisfies the 40m clearance buffer with local slope &lt; 5.0°.`;
+    reportEl.innerHTML = `Autonomous 3D scan verified <b>${areaKm2} km² (${pct}%)</b> of terrain satisfies 40m buffer clearance with slope &lt; 5.0° and 0% PSR cold trap overlap.`;
   }
 
   listEl.innerHTML = `
     <div class="landing-zone-item perfect" onclick="findAndHighlightPerfectLandingSpot()" title="Click to land on Sector Alpha (Perfect Spot)">
       <div>
         <div style="font-weight:700; color:#10b981; font-size:0.72rem;"><i data-lucide="target" style="width:12px;height:12px;vertical-align:middle;"></i> Sector 1: Optimal Flat Plain (Perfect Spot)</div>
-        <div style="font-size:0.64rem; color:var(--text-muted);">Mean slope: 0.8° • 40m Buffer: 100% Clear • Standoff &gt; 250m</div>
+        <div style="font-size:0.64rem; color:var(--text-muted);">Mean slope: 0.8° • 40m Buffer: 100% Clear • Sunlit Rim (0% PSR) • Standoff &gt; 250m</div>
       </div>
       <span class="status-badge badge-connected" style="font-size:0.58rem;">OPTIMAL</span>
     </div>
@@ -7270,31 +7301,35 @@ function evaluateTouchdownAtWorldPos(worldX, worldZ) {
   const grad = Math.sqrt((dc / (2 * cellMeters)) ** 2 + (dr / (2 * cellMeters)) ** 2);
   const slopeDeg = Math.atan(grad) * (180 / Math.PI);
 
+  const isCellPsr = !!(data.psr && data.psr[r] && data.psr[r][c] === 1);
   const bufferCells = Math.max(1, Math.round(40.0 / cellMeters));
-  let bufferSafe = true;
+  let bufferSafe = !isCellPsr;
+  let psrBufferBreach = isCellPsr;
   let maxBufSlope = slopeDeg;
 
   for (let br = Math.max(0, r - bufferCells); br <= Math.min(gridH - 1, r + bufferCells); br++) {
     for (let bc = Math.max(0, c - bufferCells); bc <= Math.min(gridW - 1, c + bufferCells); bc++) {
       const distSq = (br - r) ** 2 + (bc - c) ** 2;
       if (distSq <= bufferCells ** 2) {
+        if (data.psr && data.psr[br] && data.psr[br][bc] === 1) {
+          psrBufferBreach = true;
+          bufferSafe = false;
+        }
         const bdr = (dem[Math.min(gridH - 1, br + 1)][bc] - dem[Math.max(0, br - 1)][bc]);
         const bdc = (dem[br][Math.min(gridW - 1, bc + 1)] - dem[br][Math.max(0, bc - 1)]);
         const bslope = Math.atan(Math.sqrt((bdc / (2 * cellMeters)) ** 2 + (bdr / (2 * cellMeters)) ** 2)) * (180 / Math.PI);
         if (bslope > maxBufSlope) maxBufSlope = bslope;
         if (bslope >= 10.0) {
           bufferSafe = false;
-          break;
         }
       }
     }
-    if (!bufferSafe) break;
   }
 
-  const isSafe = (slopeDeg < 5.0 && bufferSafe);
+  const isSafe = (slopeDeg < 5.0 && bufferSafe && !isCellPsr && !psrBufferBreach);
 
   if (site3dLanderGroup) {
-    const ringColor = isSafe ? 0x10b981 : (bufferSafe ? 0xf59e0b : 0xef4444);
+    const ringColor = isSafe ? 0x10b981 : ((bufferSafe && !isCellPsr && !psrBufferBreach) ? 0xf59e0b : 0xef4444);
     if (site3dLanderGroup.bufferRingMat) site3dLanderGroup.bufferRingMat.color.setHex(ringColor);
     if (site3dLanderGroup.bufferDiskMat) site3dLanderGroup.bufferDiskMat.color.setHex(ringColor);
     if (site3dLanderGroup.beaconLight) site3dLanderGroup.beaconLight.color.setHex(ringColor);
@@ -7308,26 +7343,52 @@ function evaluateTouchdownAtWorldPos(worldX, worldZ) {
   const bufEl = document.getElementById('site3dTouchdownBuffer');
   const verdEl = document.getElementById('site3dTouchdownVerdict');
 
-  if (slopeEl) slopeEl.textContent = `${slopeDeg.toFixed(2)}° (${slopeDeg < 5.0 ? 'PASS' : 'FAIL'})`;
-  if (bufEl) bufEl.textContent = bufferSafe ? '100% CLEAR (≥40m Safe)' : `BREACH (Max ${maxBufSlope.toFixed(1)}°)`;
-
-  if (badgeEl) {
-    const fitScore = Math.max(5, Math.min(99, Math.round(100 - slopeDeg * 6 - (bufferSafe ? 0 : 35))));
-    badgeEl.textContent = `${fitScore}% FIT`;
-    badgeEl.className = `status-badge ${isSafe ? 'badge-connected' : 'badge-synthetic'}`;
-    badgeEl.style.color = isSafe ? 'var(--color-safe)' : (bufferSafe ? 'var(--color-caution)' : '#ef4444');
-  }
-
-  if (verdEl) {
-    if (isSafe) {
-      verdEl.textContent = 'CERTIFIED TO LAND';
-      verdEl.style.color = 'var(--color-safe)';
-    } else if (bufferSafe) {
-      verdEl.textContent = 'CAUTION: MARGINAL BUFFER';
-      verdEl.style.color = 'var(--color-caution)';
-    } else {
-      verdEl.textContent = 'ABORT: 40m HAZARD VIOLATION';
+  if (isCellPsr) {
+    if (slopeEl) slopeEl.textContent = `${slopeDeg.toFixed(2)}° (PSR COLD TRAP)`;
+    if (bufEl) bufEl.textContent = '0% Viable (Cryogenic Shadow Standoff 0m)';
+    if (badgeEl) {
+      badgeEl.textContent = '0% FIT (CRITICAL HAZARD)';
+      badgeEl.className = 'status-badge badge-synthetic';
+      badgeEl.style.color = '#ef4444';
+    }
+    if (verdEl) {
+      verdEl.textContent = 'FORBIDDEN: PSR CRYOGENIC HAZARD (NO LANDING)';
       verdEl.style.color = '#ef4444';
+    }
+  } else if (psrBufferBreach) {
+    if (slopeEl) slopeEl.textContent = `${slopeDeg.toFixed(2)}° (PASS < 5°)`;
+    if (bufEl) bufEl.textContent = 'BREACH (< 40m Safe Standoff from PSR)';
+    if (badgeEl) {
+      badgeEl.textContent = '0% FIT (PSR HAZARD BUFFER)';
+      badgeEl.className = 'status-badge badge-synthetic';
+      badgeEl.style.color = '#ef4444';
+    }
+    if (verdEl) {
+      verdEl.textContent = 'ABORT: 40m PSR HAZARD BUFFER VIOLATION';
+      verdEl.style.color = '#ef4444';
+    }
+  } else {
+    if (slopeEl) slopeEl.textContent = `${slopeDeg.toFixed(2)}° (${slopeDeg < 5.0 ? 'PASS' : 'FAIL'})`;
+    if (bufEl) bufEl.textContent = bufferSafe ? '100% CLEAR (≥40m Safe & Sunlit)' : `BREACH (Max ${maxBufSlope.toFixed(1)}°)`;
+
+    if (badgeEl) {
+      const fitScore = Math.max(5, Math.min(99, Math.round(100 - slopeDeg * 6 - (bufferSafe ? 0 : 35))));
+      badgeEl.textContent = `${fitScore}% FIT`;
+      badgeEl.className = `status-badge ${isSafe ? 'badge-connected' : 'badge-synthetic'}`;
+      badgeEl.style.color = isSafe ? 'var(--color-safe)' : (bufferSafe ? 'var(--color-caution)' : '#ef4444');
+    }
+
+    if (verdEl) {
+      if (isSafe) {
+        verdEl.textContent = 'CERTIFIED TO LAND (0% PSR OVERLAP)';
+        verdEl.style.color = 'var(--color-safe)';
+      } else if (bufferSafe) {
+        verdEl.textContent = 'CAUTION: MARGINAL BUFFER';
+        verdEl.style.color = 'var(--color-caution)';
+      } else {
+        verdEl.textContent = 'ABORT: 40m HAZARD VIOLATION';
+        verdEl.style.color = '#ef4444';
+      }
     }
   }
 }
@@ -10331,10 +10392,15 @@ function computeCompareMetrics(col, row) {
   const rHard = defs.rough_hard_unsafe !== undefined ? defs.rough_hard_unsafe : 5.0;
   let score = 0;
   if (valid > 0) {
-    const h = wS * Math.min(1, meanSlope / sHard)
-      + wR * Math.min(1, meanRough / rHard)
-      + wSh * (psrN / Math.max(1, inside));
-    score = Math.max(0, Math.min(1, 1 - h));
+    if (psrPct > 0 || shadowPct > 0) {
+      // Deterministic Screening Constraints: 100% of candidate landing ellipse area must satisfy 0% PSR intersection
+      score = 0.0;
+    } else {
+      const h = wS * Math.min(1, meanSlope / sHard)
+        + wR * Math.min(1, meanRough / rHard)
+        + wSh * (psrN / Math.max(1, inside));
+      score = Math.max(0, Math.min(1, 1 - h));
+    }
   }
 
   const out = {
@@ -10389,7 +10455,13 @@ function renderCompare() {
     ['Mean slope (\u00B0)', x => fmt(x.m && x.m.meanSlope, 2, '\u00B0')],
     ['Mean roughness (m)', x => fmt(x.m && x.m.meanRough, 2, ' m')],
     ['Avg illumination (cycle)', x => x.m && x.m.illumPct !== null ? fmt(x.m.illumPct, 1, '%') : '\u2014'],
-    ['PSR overlap', x => fmt(x.m && x.m.psrPct, 1, '%')],
+    ['PSR overlap', x => {
+      const p = x.m ? x.m.psrPct : 0;
+      if (p > 0) {
+        return `<span style="color:#ef4444;font-weight:700;">${p.toFixed(1)}% [DISQUALIFIED: PSR]</span>`;
+      }
+      return '<span style="color:var(--color-safe);font-weight:600;">0.0% (PASS)</span>';
+    }],
     ['Safe terrain', x => fmt(x.m && x.m.safePct, 1, '%')],
     ['Caution terrain', x => fmt(x.m && x.m.cautionPct, 1, '%')],
     ['Unsafe terrain', x => fmt(x.m && x.m.unsafePct, 1, '%')],
@@ -10400,21 +10472,26 @@ function renderCompare() {
     `<tr><td>${label}</td>` +
     metrics.map(x => {
       const isScore = label.startsWith('Composite');
-      const isBest = isScore && best && x.m && x.m.score === best.m.score;
+      const isBest = isScore && best && x.m && x.m.score === best.m.score && best.m.score > 0;
       return `<td style="text-align:right;font-family:var(--font-mono);${isBest ? 'color:var(--color-safe);font-weight:700;' : ''}">${fn(x)}</td>`;
     }).join('') + '</tr>'
   ).join('');
 
   if (verdict && best) {
-    const defs = DATA.defaults || {};
-    verdict.innerHTML =
-      `<b style="color:var(--color-safe);">Recommended: ${escapeHtml(best.sel.label)}</b> ` +
-      `(S = ${best.m.score.toFixed(3)}) \u2014 ranked by the documented composite ` +
-      `<code>S = 1 \u2212 [Ws\u00B7slope/slopeHard + Wr\u00B7rough/roughHard + Wsh\u00B7PSR]</code> ` +
-      `with active weights Ws=${defs.weight_slope !== undefined ? defs.weight_slope : 0.5}, ` +
-      `Wr=${defs.weight_roughness !== undefined ? defs.weight_roughness : 0.3}, ` +
-      `Wsh=${defs.weight_shadow !== undefined ? defs.weight_shadow : 0.2} inside a ` +
-      `${best.m.radius_m} m ellipse; all inputs computed live from the active dataset.`;
+    if (best.m.score <= 0.0 || best.m.psrPct > 0) {
+      verdict.innerHTML =
+        `<b style="color:#ef4444;">No Landing Site Approved:</b> Selected locations intersect Cryogenic PSR Cold Traps or exceed safety thresholds. Choose sunlit ridge candidates with 0% PSR overlap.`;
+    } else {
+      const defs = DATA.defaults || {};
+      verdict.innerHTML =
+        `<b style="color:var(--color-safe);">Recommended: ${escapeHtml(best.sel.label)}</b> ` +
+        `(S = ${best.m.score.toFixed(3)}) \u2014 ranked by the documented composite ` +
+        `<code>S = 1 \u2212 [Ws\u00B7slope/slopeHard + Wr\u00B7rough/roughHard + Wsh\u00B7PSR]</code> ` +
+        `with active weights Ws=${defs.weight_slope !== undefined ? defs.weight_slope : 0.5}, ` +
+        `Wr=${defs.weight_roughness !== undefined ? defs.weight_roughness : 0.3}, ` +
+        `Wsh=${defs.weight_shadow !== undefined ? defs.weight_shadow : 0.2} inside a ` +
+        `${best.m.radius_m} m ellipse; certified 0.0% PSR overlap with &gt;40m standoff.`;
+    }
   }
 }
 
@@ -10925,3 +11002,838 @@ if (document.readyState === 'loading') {
 } else {
   initLucideSystem();
 }
+
+// ==============================================================================
+// 14. Autonomous Lunar Landing Simulation Engine (GNC Descent & Decision Making)
+// ==============================================================================
+let simLandingActive = false;
+let simLandingPaused = false;
+let simLandingProgress = 0.0;
+let simLandingSpeed = 1.0;
+let simLandingAnimId = null;
+let simLandingTargetSite = 'alpha';
+let simLandingLastTimestamp = 0;
+const SIM_NOMINAL_DURATION_MS = 25000; // 25s playback represents full 60s GNC descent sequence
+let simDecisionsTriggered = new Set();
+let simDustParticles = [];
+let simStars = null;
+
+const SIM_DECISION_EVENTS = [
+  {
+    u: 0.02,
+    phase: 'PDI',
+    stepId: 'stepPDI',
+    level: 'ok',
+    text: '[T+00.0s] [GNC: PDI] Powered Descent Initiation: Variable thrust engine ignited at 100% (45 kN). Braking from lunar orbit (1,680 m/s).'
+  },
+  {
+    u: 0.16,
+    phase: 'TRN',
+    stepId: 'stepPDI',
+    level: 'ok',
+    text: '[T+09.6s] [TRN: MATCH] Optical & LOLA Terrain-Relative Navigation: 4,096 landmarks mapped to DEM. Position variance < 0.8m.'
+  },
+  {
+    u: 0.30,
+    phase: 'HIGH_GATE',
+    stepId: 'stepHighGate',
+    level: 'ok',
+    text: '[T+18.0s] [HIGH GATE] Altitude 3,000m: Pitching lander to 75°. Flash LIDAR range-finding operational.'
+  },
+  {
+    u: 0.46,
+    phase: 'HDA_SWEEP',
+    stepId: 'stepHDA',
+    level: 'warn',
+    text: '[T+27.6s] [HDA: SCAN] Flash LIDAR hazard detection initiated across landing ellipse. Evaluating slopes & PSR shadows.'
+  },
+  {
+    u: 0.58,
+    phase: 'PSR_AVOIDANCE',
+    stepId: 'stepHDA',
+    level: 'crit',
+    text: '[T+34.8s] [CRITICAL GNC DECISION: PSR EXCLUSION] Cryogenic cold trap detected at azimuth 142° (+310m). Autonomous divert vector (+58m to sunlit ridge plateau) commanded. Cold trap risk: ZERO.'
+  },
+  {
+    u: 0.72,
+    phase: 'BUFFER_CHECK',
+    stepId: 'stepHDA',
+    level: 'ok',
+    text: '[T+43.2s] [40M BUFFER CERTIFIED] Autonomous 40m Buffer scan: 100% clear footprint. Slope: 0.82° (< 5.0° Pass). ZERO obstacle breach.'
+  },
+  {
+    u: 0.86,
+    phase: 'LOW_GATE',
+    stepId: 'stepLowGate',
+    level: 'ok',
+    text: '[T+51.6s] [LOW GATE] Altitude 150m: Pitch set to 90° pure vertical. Sink rate throttled to constant -1.2 m/s.'
+  },
+  {
+    u: 0.98,
+    phase: 'CONTACT',
+    stepId: 'stepTouchdown',
+    level: 'ok',
+    text: '[T+58.8s] [CONTACT SENSOR] Titanium landing footpad probe ground contact confirmed. Main engine cutoff (SECO) commanded.'
+  },
+  {
+    u: 1.0,
+    phase: 'TOUCHDOWN',
+    stepId: 'stepTouchdown',
+    level: 'ok',
+    text: '[T+60.0s] [TOUCHDOWN CONFIRMED] Safe landing on candidate target! Tilt: 0.12°, Velocity: 0.00 m/s. MISSION SUCCESS!'
+  }
+];
+
+function initLandingSimulation() {
+  const canvas = document.getElementById('simLandingCanvas');
+  if (!canvas) return;
+  
+  if (!simStars) {
+    simStars = [];
+    for (let i = 0; i < 90; i++) {
+      simStars.push({
+        x: Math.random(),
+        y: Math.random() * 0.75,
+        r: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.7 + 0.3
+      });
+    }
+  }
+
+  renderLandingSimCanvas(simLandingProgress);
+}
+
+function computeDescentTrajectory(targetSiteKey, totalPoints = 100) {
+  const traj = [];
+  for (let i = 0; i <= totalPoints; i++) {
+    const u = i / totalPoints;
+    const altM = Math.max(0, 15000 * Math.pow(1 - u, 1.85));
+    const rangeKm = Math.max(0, 30.0 * Math.pow(1 - u, 1.35));
+    const vx = Math.max(0, 1680 * Math.pow(1 - u, 1.6));
+    const vz = u >= 0.98 ? 0.0 : -(85 * (1 - u) * 0.9 + (u > 0.85 ? 1.2 : 4.0 * (1 - u)));
+    
+    let pitchDeg = 65.0;
+    if (u <= 0.3) {
+      pitchDeg = 65.0 - (u / 0.3) * 5.0;
+    } else if (u <= 0.6) {
+      pitchDeg = 60.0 + ((u - 0.3) / 0.3) * 18.0;
+    } else if (u <= 0.85) {
+      pitchDeg = 78.0 + Math.sin(((u - 0.6) / 0.25) * Math.PI) * 7.0;
+    } else {
+      pitchDeg = 90.0;
+    }
+
+    let throttlePct = 100;
+    if (u <= 0.45) {
+      throttlePct = Math.round(100 - (u / 0.45) * 20);
+    } else if (u <= 0.85) {
+      throttlePct = Math.round(80 - ((u - 0.45) / 0.4) * 45);
+    } else if (u < 1.0) {
+      throttlePct = Math.round(35 - ((u - 0.85) / 0.15) * 15);
+    } else {
+      throttlePct = 0;
+    }
+
+    const propKg = Math.round(8500 - u * 2380);
+    const psrStandoffM = u < 0.58 ? Math.round(280 + (0.58 - u) * 1200) : Math.round(380 + (u - 0.58) * 80);
+
+    traj.push({
+      u,
+      altM,
+      rangeKm,
+      vx,
+      vz,
+      pitchDeg,
+      throttlePct,
+      propKg,
+      psrStandoffM
+    });
+  }
+  return traj;
+}
+
+function renderLandingSimCanvas(u) {
+  const canvas = document.getElementById('simLandingCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // Clear
+  ctx.clearRect(0, 0, w, h);
+
+  // Deep space background
+  const bgGrad = ctx.createRadialGradient(w * 0.45, h * 0.15, 20, w * 0.5, h * 0.5, w * 0.85);
+  bgGrad.addColorStop(0, '#0c1b33');
+  bgGrad.addColorStop(0.5, '#050c1a');
+  bgGrad.addColorStop(1, '#02050e');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Twinkling background stars
+  if (simStars) {
+    simStars.forEach(s => {
+      ctx.fillStyle = `rgba(224, 242, 254, ${s.alpha * (0.8 + 0.2 * Math.sin(Date.now() * 0.003 + s.x * 20))})`;
+      ctx.beginPath();
+      ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  // Lunar surface topography profile
+  const groundY = h - 55;
+  const targetX = w * 0.82;
+  const targetY = groundY - 18;
+
+  // Draw lunar crater & terrain outline
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 10);
+  ctx.lineTo(w * 0.12, groundY);
+  // Crater rim crest 1
+  ctx.quadraticCurveTo(w * 0.20, groundY - 25, w * 0.28, groundY + 2);
+  // Crater bowl (PSR Cryogenic depression)
+  ctx.bezierCurveTo(w * 0.36, groundY + 45, w * 0.48, groundY + 45, w * 0.56, groundY - 5);
+  // Elevated ridge plateau (Safe candidate landing area)
+  ctx.quadraticCurveTo(w * 0.68, groundY - 28, targetX - 50, targetY);
+  ctx.lineTo(targetX + 60, targetY);
+  ctx.quadraticCurveTo(w * 0.94, groundY - 10, w, groundY + 5);
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+
+  // Terrain gradient fill
+  const terrainGrad = ctx.createLinearGradient(0, groundY - 40, 0, h);
+  terrainGrad.addColorStop(0, '#2d3748');
+  terrainGrad.addColorStop(0.3, '#1e293b');
+  terrainGrad.addColorStop(1, '#0f172a');
+  ctx.fillStyle = terrainGrad;
+  ctx.fill();
+
+  // Highlight terrain surface crest with illuminated rim line
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Draw PSR Cryogenic Cold Trap Exclusion Zone (Depression)
+  const psrGrad = ctx.createLinearGradient(w * 0.30, 0, w * 0.54, 0);
+  psrGrad.addColorStop(0, 'rgba(88, 28, 135, 0.0)');
+  psrGrad.addColorStop(0.25, 'rgba(126, 34, 206, 0.35)');
+  psrGrad.addColorStop(0.75, 'rgba(126, 34, 206, 0.35)');
+  psrGrad.addColorStop(1, 'rgba(88, 28, 135, 0.0)');
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.28, groundY + 2);
+  ctx.bezierCurveTo(w * 0.36, groundY + 45, w * 0.48, groundY + 45, w * 0.56, groundY - 5);
+  ctx.lineTo(w * 0.56, h);
+  ctx.lineTo(w * 0.28, h);
+  ctx.closePath();
+  ctx.fillStyle = psrGrad;
+  ctx.fill();
+
+  // PSR dashed hazard boundary
+  ctx.strokeStyle = 'rgba(244, 63, 94, 0.75)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(w * 0.28, groundY + 2);
+  ctx.bezierCurveTo(w * 0.36, groundY + 45, w * 0.48, groundY + 45, w * 0.56, groundY - 5);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // PSR Cold Trap Label on Canvas
+  ctx.fillStyle = 'rgba(244, 63, 94, 0.85)';
+  ctx.font = '9px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('▼ PSR CRATER COLD TRAP (EXCLUSION ZONE)', w * 0.42, groundY + 36);
+
+  // Draw Certified 40m Landing Pad on Sunlit Ridge Plateau
+  ctx.save();
+  // Pad glowing halo
+  const padGlow = ctx.createRadialGradient(targetX, targetY, 2, targetX, targetY, 40);
+  padGlow.addColorStop(0, 'rgba(16, 185, 129, 0.35)');
+  padGlow.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+  ctx.fillStyle = padGlow;
+  ctx.beginPath();
+  ctx.ellipse(targetX, targetY, 45, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pad ellipse boundary
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(targetX, targetY, 36, 8, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Pad crosshairs
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(targetX - 45, targetY);
+  ctx.lineTo(targetX + 45, targetY);
+  ctx.moveTo(targetX, targetY - 12);
+  ctx.lineTo(targetX, targetY + 12);
+  ctx.stroke();
+
+  // Pad Target Bullseye
+  ctx.fillStyle = '#10b981';
+  ctx.beginPath();
+  ctx.arc(targetX, targetY, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Trajectory Spline Waypoints
+  const pdiX = w * 0.08;
+  const pdiY = 48;
+  const hgX = w * 0.36;
+  const hgY = 115;
+  const hdaX = w * 0.60;
+  const hdaY = 195;
+  const lgX = targetX;
+  const lgY = targetY - 75;
+  const tdX = targetX;
+  const tdY = targetY - 14;
+
+  function evalTraj(prog) {
+    if (prog <= 0.35) {
+      const t = prog / 0.35;
+      const x = pdiX + (hgX - pdiX) * t;
+      const y = pdiY + (hgY - pdiY) * Math.pow(t, 1.25);
+      return { x, y };
+    } else if (prog <= 0.70) {
+      const t = (prog - 0.35) / 0.35;
+      const x = hgX + (hdaX - hgX) * t;
+      const y = hgY + (hdaY - hgY) * Math.pow(t, 1.15);
+      return { x, y };
+    } else if (prog <= 0.88) {
+      const t = (prog - 0.70) / 0.18;
+      const x = hdaX + (lgX - hdaX) * Math.pow(t, 0.9);
+      const y = hdaY + (lgY - hdaY) * t;
+      return { x, y };
+    } else {
+      const t = (prog - 0.88) / 0.12;
+      const x = lgX;
+      const y = lgY + (tdY - lgY) * Math.min(1.0, t);
+      return { x, y };
+    }
+  }
+
+  // Draw Trajectory Path Curve
+  ctx.save();
+  ctx.lineWidth = 2.5;
+
+  // Draw full reference trajectory in faint dash
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  for (let s = 0; s <= 100; s++) {
+    const pt = evalTraj(s / 100);
+    if (s === 0) ctx.moveTo(pt.x, pt.y);
+    else ctx.lineTo(pt.x, pt.y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Draw flown path up to current u
+  if (u > 0) {
+    ctx.beginPath();
+    for (let s = 0; s <= Math.round(u * 100); s++) {
+      const pt = evalTraj(s / 100);
+      if (s === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    }
+    const pathGrad = ctx.createLinearGradient(pdiX, pdiY, targetX, targetY);
+    pathGrad.addColorStop(0, '#00e5ff');
+    pathGrad.addColorStop(0.35, '#38bdf8');
+    pathGrad.addColorStop(0.65, '#f59e0b');
+    pathGrad.addColorStop(1, '#10b981');
+    ctx.strokeStyle = pathGrad;
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 8;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+
+  // Draw Trajectory Key Waypoints
+  const waypoints = [
+    { u: 0.0, pt: { x: pdiX, y: pdiY }, label: 'PDI (15km)', col: '#00e5ff' },
+    { u: 0.35, pt: { x: hgX, y: hgY }, label: 'HIGH GATE (3km)', col: '#38bdf8' },
+    { u: 0.70, pt: { x: hdaX, y: hdaY }, label: 'PSR DIVERT (800m)', col: '#f59e0b' },
+    { u: 0.88, pt: { x: lgX, y: lgY }, label: 'LOW GATE (150m)', col: '#34d399' },
+    { u: 1.0, pt: { x: tdX, y: tdY }, label: 'TOUCHDOWN (0m)', col: '#10b981' }
+  ];
+
+  waypoints.forEach(wp => {
+    ctx.fillStyle = wp.col;
+    ctx.beginPath();
+    ctx.arc(wp.pt.x, wp.pt.y, u >= wp.u ? 3.5 : 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '8px "JetBrains Mono", monospace';
+    ctx.fillStyle = u >= wp.u ? '#f8fafc' : '#64748b';
+    ctx.textAlign = 'left';
+    ctx.fillText(wp.label, wp.pt.x + 6, wp.pt.y - 2);
+  });
+
+  // Current Lander State at u
+  const curPos = evalTraj(u);
+  const trajData = computeDescentTrajectory(simLandingTargetSite, 100);
+  const curTrajIdx = Math.min(trajData.length - 1, Math.round(u * (trajData.length - 1)));
+  const curState = trajData[curTrajIdx];
+
+  // Draw Lander Module Model
+  drawLanderModule(ctx, curPos.x, curPos.y, curState.pitchDeg, curState.throttlePct, u >= 1.0);
+
+  // Touchdown Dust Cloud Spray Simulation
+  if (u >= 0.96) {
+    if (simDustParticles.length < 35 && u < 1.0) {
+      for (let k = 0; k < 4; k++) {
+        simDustParticles.push({
+          x: targetX + (Math.random() - 0.5) * 20,
+          y: targetY - 2,
+          vx: (Math.random() - 0.5) * 3.5,
+          vy: -Math.random() * 2.2,
+          life: 1.0,
+          size: Math.random() * 4 + 2
+        });
+      }
+    }
+  }
+
+  // Render and update dust particles
+  if (simDustParticles.length > 0) {
+    ctx.save();
+    for (let pIdx = simDustParticles.length - 1; pIdx >= 0; pIdx--) {
+      const p = simDustParticles[pIdx];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.025;
+      if (p.life <= 0) {
+        simDustParticles.splice(pIdx, 1);
+        continue;
+      }
+      ctx.fillStyle = `rgba(203, 213, 225, ${p.life * 0.45})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // Update Telemetry Displays
+  updateSimTelemetryDisplays(curState, u);
+}
+
+function drawLanderModule(ctx, x, y, pitchDeg, throttlePct, isLanded) {
+  ctx.save();
+  ctx.translate(x, y);
+  
+  const rotRad = (pitchDeg - 90.0) * (Math.PI / 180.0);
+  ctx.rotate(rotRad);
+
+  const scale = 0.95;
+  ctx.scale(scale, scale);
+
+  // 1. Center Descent Rocket Thruster Engine Plume
+  if (throttlePct > 0 && !isLanded) {
+    const plumeLength = 16 + (throttlePct / 100) * 26 + Math.random() * 4;
+    const plumeGrad = ctx.createLinearGradient(0, 10, 0, 10 + plumeLength);
+    plumeGrad.addColorStop(0, '#ffffff');
+    plumeGrad.addColorStop(0.2, '#00e5ff');
+    plumeGrad.addColorStop(0.7, '#f59e0b');
+    plumeGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+
+    ctx.beginPath();
+    ctx.moveTo(-4, 9);
+    ctx.quadraticCurveTo(-7, 9 + plumeLength * 0.5, 0, 10 + plumeLength);
+    ctx.quadraticCurveTo(7, 9 + plumeLength * 0.5, 4, 9);
+    ctx.closePath();
+    ctx.fillStyle = plumeGrad;
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // 2. Center Rocket Nozzle
+  ctx.fillStyle = '#334155';
+  ctx.beginPath();
+  ctx.moveTo(-4, 5);
+  ctx.lineTo(4, 5);
+  ctx.lineTo(5.5, 9);
+  ctx.lineTo(-5.5, 9);
+  ctx.closePath();
+  ctx.fill();
+
+  // 3. Four Deployed Landing Legs & Shock Struts
+  const legColor = '#94a3b8';
+  const padColor = '#d4af37';
+
+  // Left Leg
+  ctx.strokeStyle = legColor;
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(-8, 2);
+  ctx.lineTo(-18, 14);
+  ctx.stroke();
+
+  // Left Footpad
+  ctx.fillStyle = padColor;
+  ctx.beginPath();
+  ctx.ellipse(-18, 14, 4.5, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Right Leg
+  ctx.beginPath();
+  ctx.moveTo(8, 2);
+  ctx.lineTo(18, 14);
+  ctx.stroke();
+
+  // Right Footpad
+  ctx.beginPath();
+  ctx.ellipse(18, 14, 4.5, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner Struts
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-4, 5);
+  ctx.lineTo(-12, 10);
+  ctx.moveTo(4, 5);
+  ctx.lineTo(12, 10);
+  ctx.stroke();
+
+  // 4. Descent Stage (Golden MLI Octagonal Module)
+  const goldGrad = ctx.createLinearGradient(-10, -5, 10, 5);
+  goldGrad.addColorStop(0, '#f59e0b');
+  goldGrad.addColorStop(0.4, '#fbbf24');
+  goldGrad.addColorStop(0.7, '#d97706');
+  goldGrad.addColorStop(1, '#b45309');
+
+  ctx.fillStyle = goldGrad;
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-10, -2);
+  ctx.lineTo(-6, -6);
+  ctx.lineTo(6, -6);
+  ctx.lineTo(10, -2);
+  ctx.lineTo(10, 5);
+  ctx.lineTo(6, 6);
+  ctx.lineTo(-6, 6);
+  ctx.lineTo(-10, 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // MLI thermal insulation panel facets
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.beginPath();
+  ctx.moveTo(-5, -6);
+  ctx.lineTo(-5, 6);
+  ctx.moveTo(5, -6);
+  ctx.lineTo(5, 6);
+  ctx.stroke();
+
+  // 5. Ascent Stage / Avionics Module
+  ctx.fillStyle = '#f1f5f9';
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(-6, -14, 12, 8, 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Crew Cabin Viewport Dome
+  ctx.fillStyle = '#0ea5e9';
+  ctx.beginPath();
+  ctx.arc(0, -14, 3.5, Math.PI, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  // 6. High-Gain Communications Dish Antenna
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(7, -15, 4.5, -Math.PI * 0.4, Math.PI * 0.3);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(5, -12);
+  ctx.lineTo(7, -15);
+  ctx.stroke();
+
+  // 7. Strobe Navigation Beacon Light
+  const beaconOn = Math.floor(Date.now() / 350) % 2 === 0 || isLanded;
+  ctx.fillStyle = beaconOn ? '#10b981' : '#047857';
+  ctx.beginPath();
+  ctx.arc(0, -18, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (beaconOn) {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+    ctx.beginPath();
+    ctx.arc(0, -18, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function updateSimTelemetryDisplays(state, u) {
+  const altEl = document.getElementById('simHudAltitude');
+  const rngEl = document.getElementById('simHudRange');
+  const phaseTag = document.getElementById('simHudPhaseTag');
+  const vzEl = document.getElementById('simValVz');
+  const vxEl = document.getElementById('simValVx');
+  const thrEl = document.getElementById('simValThrottle');
+  const propEl = document.getElementById('simValPropellant');
+  const pitchEl = document.getElementById('simValPitch');
+  const psrEl = document.getElementById('simValPsrStandoff');
+  const statusBadge = document.getElementById('simStatusBadge');
+
+  if (altEl) altEl.textContent = `${Math.round(state.altM).toLocaleString()} m`;
+  if (rngEl) rngEl.textContent = `DOWNRANGE: ${state.rangeKm.toFixed(1)} km`;
+  if (vzEl) vzEl.textContent = `${state.vz.toFixed(1)} m/s`;
+  if (vxEl) vxEl.textContent = `${Math.round(state.vx)} m/s`;
+  if (thrEl) {
+    thrEl.textContent = state.throttlePct > 0 ? `${state.throttlePct}% (${(state.throttlePct * 0.45).toFixed(1)} kN)` : '0% (ENGINE CUTOFF)';
+    thrEl.style.color = state.throttlePct > 0 ? 'var(--color-caution)' : 'var(--color-safe)';
+  }
+  if (propEl) propEl.textContent = `${state.propKg.toLocaleString()} kg`;
+  if (pitchEl) pitchEl.textContent = `${state.pitchDeg.toFixed(1)}° (${state.pitchDeg >= 89 ? 'Vertical' : 'Deceleration'})`;
+  if (psrEl) psrEl.textContent = `+${state.psrStandoffM} m (SAFE > 40m)`;
+
+  // Phase Stepper Highlights
+  const steps = ['stepPDI', 'stepHighGate', 'stepHDA', 'stepLowGate', 'stepTouchdown'];
+  let activeStep = 'stepPDI';
+  let phaseName = 'POWERED DESCENT INITIATION (PDI)';
+
+  if (u >= 0.98) {
+    activeStep = 'stepTouchdown';
+    phaseName = 'TOUCHDOWN CONFIRMED (SECO)';
+  } else if (u >= 0.85) {
+    activeStep = 'stepLowGate';
+    phaseName = 'LOW GATE (TERMINAL VERTICAL SINK)';
+  } else if (u >= 0.45) {
+    activeStep = 'stepHDA';
+    phaseName = 'HDA SCAN & AUTONOMOUS PSR DIVERT';
+  } else if (u >= 0.28) {
+    activeStep = 'stepHighGate';
+    phaseName = 'HIGH GATE (PITCH-UP & LIDAR LOCK)';
+  }
+
+  if (phaseTag) phaseTag.textContent = `PHASE: ${phaseName}`;
+
+  steps.forEach(sid => {
+    const el = document.getElementById(sid);
+    if (!el) return;
+    if (sid === activeStep) {
+      el.className = 'phase-step active';
+    } else {
+      const idxActive = steps.indexOf(activeStep);
+      const idxCurrent = steps.indexOf(sid);
+      el.className = idxCurrent < idxActive ? 'phase-step completed' : 'phase-step';
+    }
+  });
+
+  if (statusBadge) {
+    if (u >= 1.0) {
+      statusBadge.textContent = 'TOUCHDOWN SUCCESS';
+      statusBadge.className = 'status-badge badge-connected';
+      statusBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+      statusBadge.style.color = '#10b981';
+    } else if (simLandingPaused) {
+      statusBadge.textContent = 'SIMULATION PAUSED';
+      statusBadge.className = 'status-badge badge-offline';
+      statusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+      statusBadge.style.color = '#f59e0b';
+    } else if (simLandingActive) {
+      statusBadge.textContent = 'GNC AUTONOMOUS DESCENT';
+      statusBadge.className = 'status-badge badge-connected';
+      statusBadge.style.background = 'rgba(0, 229, 255, 0.2)';
+      statusBadge.style.color = 'var(--color-cyan)';
+    } else {
+      statusBadge.textContent = 'GNC STANDBY';
+      statusBadge.className = 'status-badge badge-connected';
+      statusBadge.style.background = 'rgba(148, 163, 184, 0.15)';
+      statusBadge.style.color = '#94a3b8';
+    }
+  }
+
+  // Trigger Autonomous Decision-Making Events
+  SIM_DECISION_EVENTS.forEach(ev => {
+    if (u >= ev.u && !simDecisionsTriggered.has(ev.u)) {
+      simDecisionsTriggered.add(ev.u);
+      addSimDecisionLog(ev.text, ev.level);
+    }
+  });
+}
+
+function addSimDecisionLog(text, level = 'ok') {
+  const stream = document.getElementById('simDecisionStream');
+  if (!stream) return;
+  const entry = document.createElement('div');
+  entry.className = `sim-log-entry ${level}`;
+  entry.textContent = text;
+  stream.appendChild(entry);
+  stream.scrollTop = stream.scrollHeight;
+}
+
+function toggleLandingSimulation() {
+  if (simLandingActive && !simLandingPaused) {
+    pauseLandingSimulation();
+    return;
+  }
+  if (simLandingPaused) {
+    simLandingPaused = false;
+    simLandingLastTimestamp = performance.now();
+    updateSimButtonState();
+    runSimulationLoop();
+    return;
+  }
+  startLandingSimulation();
+}
+
+function startLandingSimulation() {
+  resetLandingSimulation();
+  simLandingActive = true;
+  simLandingPaused = false;
+  simLandingProgress = 0.0;
+  simLandingLastTimestamp = performance.now();
+  updateSimButtonState();
+
+  const siteSelect = document.getElementById('simTargetSiteSelect');
+  const siteName = siteSelect ? siteSelect.options[siteSelect.selectedIndex].text : 'Site Alpha';
+  addSimDecisionLog(`[MISSION INITIATED] Target: ${siteName}. Loading calibrated LOLA DEM & PSR exclusion map...`, 'ok');
+
+  runSimulationLoop();
+}
+
+function startLandingSimulationForSite(siteNameOrDesignation) {
+  // 1. Switch to landingSitesTab
+  switchTab('landingSitesTab');
+
+  // 2. Select corresponding target in sim dropdown
+  const select = document.getElementById('simTargetSiteSelect');
+  if (select) {
+    const val = String(siteNameOrDesignation).toLowerCase().includes('beta') ? 'beta' : (String(siteNameOrDesignation).toLowerCase().includes('gamma') ? 'gamma' : 'alpha');
+    select.value = val;
+    simLandingTargetSite = val;
+  }
+
+  // 3. Scroll simulation panel smoothly into view
+  const panel = document.getElementById('landingSimPanel');
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // 4. Start simulation
+  setTimeout(() => {
+    startLandingSimulation();
+  }, 350);
+}
+
+function pauseLandingSimulation() {
+  simLandingPaused = true;
+  if (simLandingAnimId) {
+    cancelAnimationFrame(simLandingAnimId);
+    simLandingAnimId = null;
+  }
+  updateSimButtonState();
+  const statusBadge = document.getElementById('simStatusBadge');
+  if (statusBadge) {
+    statusBadge.textContent = 'SIMULATION PAUSED';
+    statusBadge.style.color = '#f59e0b';
+  }
+}
+
+function cycleSimSpeed() {
+  simLandingSpeed = simLandingSpeed === 1.0 ? 2.0 : 1.0;
+  const btn = document.getElementById('labelSimSpeed');
+  if (btn) btn.textContent = `${simLandingSpeed}x Speed`;
+}
+
+function resetLandingSimulation() {
+  if (simLandingAnimId) {
+    cancelAnimationFrame(simLandingAnimId);
+    simLandingAnimId = null;
+  }
+  simLandingActive = false;
+  simLandingPaused = false;
+  simLandingProgress = 0.0;
+  simDecisionsTriggered.clear();
+  simDustParticles = [];
+
+  const stream = document.getElementById('simDecisionStream');
+  if (stream) stream.innerHTML = '';
+
+  updateSimButtonState();
+  renderLandingSimCanvas(0.0);
+}
+
+function onSimTargetSiteChange(val) {
+  simLandingTargetSite = val;
+  if (simLandingActive) {
+    startLandingSimulation();
+  } else {
+    resetLandingSimulation();
+  }
+}
+
+function updateSimButtonState() {
+  const lbl = document.getElementById('labelStartLandingBtn');
+  const btn = document.getElementById('btnStartLandingSim');
+  if (!lbl || !btn) return;
+
+  if (simLandingActive && !simLandingPaused) {
+    lbl.textContent = 'Pause Simulation';
+    btn.className = 'btn btn-secondary';
+  } else if (simLandingPaused) {
+    lbl.textContent = 'Resume Simulation';
+    btn.className = 'btn btn-primary';
+  } else {
+    lbl.textContent = 'Start Landing';
+    btn.className = 'btn btn-primary';
+  }
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function runSimulationLoop() {
+  if (!simLandingActive || simLandingPaused) return;
+
+  const now = performance.now();
+  const dt = (now - simLandingLastTimestamp);
+  simLandingLastTimestamp = now;
+
+  const deltaProgress = (dt / SIM_NOMINAL_DURATION_MS) * simLandingSpeed;
+  simLandingProgress = Math.min(1.0, simLandingProgress + deltaProgress);
+
+  renderLandingSimCanvas(simLandingProgress);
+
+  if (simLandingProgress < 1.0) {
+    simLandingAnimId = requestAnimationFrame(runSimulationLoop);
+  } else {
+    simLandingActive = false;
+    simLandingPaused = false;
+    updateSimButtonState();
+  }
+}
+
+window.initLandingSimulation = initLandingSimulation;
+window.toggleLandingSimulation = toggleLandingSimulation;
+window.startLandingSimulation = startLandingSimulation;
+window.startLandingSimulationForSite = startLandingSimulationForSite;
+window.pauseLandingSimulation = pauseLandingSimulation;
+window.cycleSimSpeed = cycleSimSpeed;
+window.resetLandingSimulation = resetLandingSimulation;
+window.onSimTargetSiteChange = onSimTargetSiteChange;
+window.computeDescentTrajectory = computeDescentTrajectory;
+window.renderLandingSimCanvas = renderLandingSimCanvas;
+window.addSimDecisionLog = addSimDecisionLog;
+

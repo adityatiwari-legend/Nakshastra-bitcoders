@@ -154,3 +154,175 @@ test('Candidate Landing Contingency: High-slope terrain triggers recommended alt
   assert.strictEqual(recommendedSite.name, 'Site Alpha (Connecting Ridge)', 'Should select Site Alpha as recommended alternative');
   assert.ok(recommendedSite.clearance_m >= 3000, 'Recommended site must have ample clearance');
 });
+
+// ------------------------------------------------------------------------------
+// 6. Autonomous Landing Simulation DOM Elements in web/index.html
+// ------------------------------------------------------------------------------
+test('Candidate Landing Site: web/index.html contains Autonomous Landing Simulation Deck', () => {
+  const htmlPath = path.join(ROOT_DIR, 'web', 'index.html');
+  const html = fs.readFileSync(htmlPath, 'utf-8');
+
+  // Simulation Panel & Controls
+  assert.ok(html.includes('id="landingSimPanel"'), 'index.html must contain landingSimPanel');
+  assert.ok(html.includes('id="btnStartLandingSim"'), 'index.html must contain btnStartLandingSim');
+  assert.ok(html.includes('id="simTargetSiteSelect"'), 'index.html must contain simTargetSiteSelect');
+  assert.ok(html.includes('id="simLandingCanvas"'), 'index.html must contain simLandingCanvas');
+  assert.ok(html.includes('id="simStatusBadge"'), 'index.html must contain simStatusBadge');
+  assert.ok(html.includes('id="btnResetLandingSim"'), 'index.html must contain btnResetLandingSim');
+  assert.ok(html.includes('id="btnSpeedLandingSim"'), 'index.html must contain btnSpeedLandingSim');
+
+  // Telemetry HUD Elements
+  assert.ok(html.includes('id="simHudAltitude"'), 'index.html must contain simHudAltitude');
+  assert.ok(html.includes('id="simHudRange"'), 'index.html must contain simHudRange');
+  assert.ok(html.includes('id="simHudPhaseTag"'), 'index.html must contain simHudPhaseTag');
+  assert.ok(html.includes('id="simValVz"'), 'index.html must contain simValVz');
+  assert.ok(html.includes('id="simValVx"'), 'index.html must contain simValVx');
+  assert.ok(html.includes('id="simValThrottle"'), 'index.html must contain simValThrottle');
+  assert.ok(html.includes('id="simValPropellant"'), 'index.html must contain simValPropellant');
+  assert.ok(html.includes('id="simValPitch"'), 'index.html must contain simValPitch');
+  assert.ok(html.includes('id="simValPsrStandoff"'), 'index.html must contain simValPsrStandoff');
+
+  // Stepper & Autonomous Decision Stream
+  assert.ok(html.includes('id="stepPDI"'), 'index.html must contain stepPDI');
+  assert.ok(html.includes('id="stepHighGate"'), 'index.html must contain stepHighGate');
+  assert.ok(html.includes('id="stepHDA"'), 'index.html must contain stepHDA');
+  assert.ok(html.includes('id="stepLowGate"'), 'index.html must contain stepLowGate');
+  assert.ok(html.includes('id="stepTouchdown"'), 'index.html must contain stepTouchdown');
+  assert.ok(html.includes('id="simDecisionStream"'), 'index.html must contain simDecisionStream');
+});
+
+// ------------------------------------------------------------------------------
+// 7. Landing Simulation CSS Styling in web/styles.css
+// ------------------------------------------------------------------------------
+test('Candidate Landing Site: web/styles.css contains Autonomous Landing Simulation styles', () => {
+  const cssPath = path.join(ROOT_DIR, 'web', 'styles.css');
+  const css = fs.readFileSync(cssPath, 'utf-8');
+
+  assert.ok(css.includes('.landing-simulation-panel'), 'styles.css must style landing-simulation-panel');
+  assert.ok(css.includes('.sim-layout-grid'), 'styles.css must style sim-layout-grid');
+  assert.ok(css.includes('.sim-stage-container'), 'styles.css must style sim-stage-container');
+  assert.ok(css.includes('.sim-phase-stepper'), 'styles.css must style sim-phase-stepper');
+  assert.ok(css.includes('.sim-decision-stream'), 'styles.css must style sim-decision-stream');
+  assert.ok(css.includes('.sim-log-entry'), 'styles.css must style sim-log-entry');
+});
+
+// ------------------------------------------------------------------------------
+// 8. Engine Implementation in web/app.js
+// ------------------------------------------------------------------------------
+test('Candidate Landing Site: web/app.js exports simulation and trajectory calculation engine', () => {
+  const appPath = path.join(ROOT_DIR, 'web', 'app.js');
+  const app = fs.readFileSync(appPath, 'utf-8');
+
+  assert.ok(app.includes('function initLandingSimulation'), 'app.js must define initLandingSimulation');
+  assert.ok(app.includes('function toggleLandingSimulation'), 'app.js must define toggleLandingSimulation');
+  assert.ok(app.includes('function startLandingSimulation'), 'app.js must define startLandingSimulation');
+  assert.ok(app.includes('function startLandingSimulationForSite'), 'app.js must define startLandingSimulationForSite');
+  assert.ok(app.includes('function computeDescentTrajectory'), 'app.js must define computeDescentTrajectory');
+  assert.ok(app.includes('function renderLandingSimCanvas'), 'app.js must define renderLandingSimCanvas');
+  assert.ok(app.includes('function addSimDecisionLog'), 'app.js must define addSimDecisionLog');
+});
+
+// ------------------------------------------------------------------------------
+// 9. Trajectory & Autonomous GNC Decision-Making Math
+// ------------------------------------------------------------------------------
+test('Candidate Landing Math: GNC descent trajectory computation and phase progression', () => {
+  // Pure math model from computeDescentTrajectory
+  function computeTrajectoryPoint(u) {
+    const altM = Math.max(0, 15000 * Math.pow(1 - u, 1.85));
+    const rangeKm = Math.max(0, 30.0 * Math.pow(1 - u, 1.35));
+    const vx = Math.max(0, 1680 * Math.pow(1 - u, 1.6));
+    const vz = u >= 0.98 ? 0.0 : -(85 * (1 - u) * 0.9 + (u > 0.85 ? 1.2 : 4.0 * (1 - u)));
+    return { altM, rangeKm, vx, vz };
+  }
+
+  // At PDI (u = 0.0): Orbital altitude 15,000m, range 30.0km, high horizontal velocity 1,680m/s
+  const pdi = computeTrajectoryPoint(0.0);
+  assert.strictEqual(Math.round(pdi.altM), 15000, 'PDI altitude must be 15,000 m');
+  assert.strictEqual(Math.round(pdi.rangeKm), 30, 'PDI downrange must be 30.0 km');
+  assert.strictEqual(Math.round(pdi.vx), 1680, 'PDI horizontal velocity must be 1,680 m/s');
+
+  // At High Gate (u = 0.35): Decelerating rapidly
+  const hg = computeTrajectoryPoint(0.35);
+  assert.ok(hg.altM < 10000 && hg.altM > 4000, 'High Gate altitude must be intermediate');
+  assert.ok(hg.vx < 1000, 'High Gate horizontal velocity must be reduced by braking burn');
+
+  // At Touchdown (u = 1.0): Altitude = 0m, Range = 0km, Velocity = 0m/s
+  const td = computeTrajectoryPoint(1.0);
+  assert.strictEqual(td.altM, 0, 'Touchdown altitude must be 0 m');
+  assert.strictEqual(td.rangeKm, 0, 'Touchdown downrange must be 0 km');
+  assert.strictEqual(td.vx, 0, 'Touchdown horizontal velocity must be 0 m/s');
+  assert.strictEqual(td.vz, 0, 'Touchdown vertical velocity must be 0 m/s (SECO)');
+});
+
+// ------------------------------------------------------------------------------
+// 10. Strict PSR Cold Trap Landing Exclusion Logic
+// ------------------------------------------------------------------------------
+test('Candidate Landing Safety: PSR cold traps are strictly forbidden and disqualified', () => {
+  // Synthetic 10x10 elevation grid with cell spacing 20m
+  // Cells with psr = 1 represent cryogenic shadow traps (40K)
+  const gridW = 10;
+  const gridH = 10;
+  const cellMeters = 20.0;
+  const bufferCells = 2; // 40m buffer with 20m spacing = 2 cells
+
+  const dem = Array.from({ length: gridH }, () => new Float32Array(gridW).fill(100.0));
+  const psr = Array.from({ length: gridH }, () => new Uint8Array(gridW).fill(0));
+
+  // Mark crater bowl at (3, 3) as PSR cold trap
+  psr[3][3] = 1;
+  psr[3][4] = 1;
+  psr[4][3] = 1;
+  psr[4][4] = 1;
+
+  function evaluateTouchdown(r, c) {
+    const isCellPsr = psr[r][c] === 1;
+    let psrBufferBreach = isCellPsr;
+    let bufferSafe = !isCellPsr;
+
+    for (let br = Math.max(0, r - bufferCells); br <= Math.min(gridH - 1, r + bufferCells); br++) {
+      for (let bc = Math.max(0, c - bufferCells); bc <= Math.min(gridW - 1, c + bufferCells); bc++) {
+        const distSq = (br - r) ** 2 + (bc - c) ** 2;
+        if (distSq <= bufferCells ** 2) {
+          if (psr[br][bc] === 1) {
+            psrBufferBreach = true;
+            bufferSafe = false;
+            break;
+          }
+        }
+      }
+      if (!bufferSafe) break;
+    }
+
+    const isSafe = !isCellPsr && !psrBufferBreach;
+    const score = isSafe ? 95.0 : 0.0;
+    const verdict = isCellPsr
+      ? 'FORBIDDEN: PSR CRYOGENIC HAZARD (NO LANDING)'
+      : (psrBufferBreach ? 'ABORT: 40m PSR HAZARD BUFFER VIOLATION' : 'APPROVED FOR TOUCHDOWN');
+
+    return { isCellPsr, psrBufferBreach, isSafe, score, verdict };
+  }
+
+  // 1. Direct landing inside PSR cold trap (3, 3)
+  const directPsrEval = evaluateTouchdown(3, 3);
+  assert.strictEqual(directPsrEval.isCellPsr, true, 'Cell inside PSR must be flagged isCellPsr');
+  assert.strictEqual(directPsrEval.isSafe, false, 'PSR cell must NEVER be safe for landing');
+  assert.strictEqual(directPsrEval.score, 0.0, 'PSR cell suitability score must be 0%');
+  assert.ok(directPsrEval.verdict.includes('FORBIDDEN'), 'PSR cell verdict must be FORBIDDEN');
+
+  // 2. Landing at (2, 2) which is adjacent (<40m) to PSR
+  const nearPsrEval = evaluateTouchdown(2, 2);
+  assert.strictEqual(nearPsrEval.isCellPsr, false, 'Cell (2,2) is outside PSR itself');
+  assert.strictEqual(nearPsrEval.psrBufferBreach, true, 'Cell (2,2) is within 40m standoff of PSR');
+  assert.strictEqual(nearPsrEval.isSafe, false, 'Cell within 40m of PSR must not be safe');
+  assert.strictEqual(nearPsrEval.score, 0.0, 'Cell within 40m of PSR must have 0% fit score');
+  assert.ok(nearPsrEval.verdict.includes('ABORT'), 'Cell violating 40m buffer must trigger ABORT');
+
+  // 3. Sunlit plateau at (8, 8) far away from PSR
+  const safeEval = evaluateTouchdown(8, 8);
+  assert.strictEqual(safeEval.isCellPsr, false, 'Sunlit plateau must not be PSR');
+  assert.strictEqual(safeEval.psrBufferBreach, false, 'Sunlit plateau has ample PSR standoff');
+  assert.strictEqual(safeEval.isSafe, true, 'Sunlit flat plateau must be approved for touchdown');
+  assert.strictEqual(safeEval.score, 95.0, 'Sunlit plateau receives high suitability score');
+  assert.ok(safeEval.verdict.includes('APPROVED'), 'Sunlit plateau receives touchdown approval');
+});
+

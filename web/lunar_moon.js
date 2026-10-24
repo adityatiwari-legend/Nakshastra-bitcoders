@@ -711,13 +711,16 @@
               ? parseFloat((d.illumination[idx] * 100).toFixed(1))
               : (result.psr_flag ? 0.0 : 65.0);
             
-            // Continuous suitability score S = 1 - H
+            // Continuous suitability score S = 1 - H (Strict PSR exclusion: cold traps are 100% unfit)
             if (result.slope_deg !== null && result.roughness_m !== null) {
-              const sNorm = Math.min(1.0, result.slope_deg / 15.0);
-              const rNorm = Math.min(1.0, result.roughness_m / 5.0);
-              const dNorm = result.psr_flag ? 1.0 : 0.0;
-              const hScore = 0.5 * sNorm + 0.3 * rNorm + 0.2 * dNorm;
-              result.suitability_score = parseFloat((Math.max(0, 1.0 - hScore) * 100).toFixed(1));
+              if (result.psr_flag === 1) {
+                result.suitability_score = 0.0;
+              } else {
+                const sNorm = Math.min(1.0, result.slope_deg / 15.0);
+                const rNorm = Math.min(1.0, result.roughness_m / 5.0);
+                const hScore = 0.5 * sNorm + 0.3 * rNorm;
+                result.suitability_score = parseFloat((Math.max(0, 1.0 - hScore) * 100).toFixed(1));
+              }
             }
           }
         }

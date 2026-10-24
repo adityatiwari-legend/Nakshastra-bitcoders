@@ -1863,6 +1863,126 @@
         </div>
       </div>
 
+      <!-- Autonomous Landing Simulation & GNC Descent Guidance Panel -->
+      <div class="glass-panel landing-simulation-panel" id="landingSimPanel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-cyan);">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 0.6rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: rgba(0, 229, 255, 0.15); color: var(--color-cyan);"><i data-lucide="satellite" style="width:16px;height:16px;"></i></span>
+            <div>
+              <h3 style="font-size: 0.98rem; margin: 0; font-weight: 700; color: #fff;">Autonomous Landing Simulation (GNC Descent &amp; Decision Making)</h3>
+              <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.15rem;">Real-time Lunar Lander Module trajectory, optical terrain matching, autonomous PSR avoidance, and closed-loop touchdown guidance.</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto; flex-wrap: wrap;">
+            <span class="status-badge badge-connected" id="simStatusBadge" style="font-size: 0.65rem;">GNC STANDBY</span>
+            <select id="simTargetSiteSelect" class="sim-site-select" onchange="onSimTargetSiteChange(this.value)" style="background: rgba(15, 23, 42, 0.9); color: #fff; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; font-size: 0.72rem; padding: 0.3rem 0.5rem; outline: none; cursor: pointer;">
+              <option value="alpha">Site Alpha (Connecting Ridge - Primary)</option>
+              <option value="beta">Site Beta (Secondary Crest Plateau)</option>
+              <option value="gamma">Site Gamma (Contingency Plain)</option>
+            </select>
+            <button class="btn btn-primary" id="btnStartLandingSim" onclick="toggleLandingSimulation()" style="font-weight: 700; padding: 0.35rem 0.8rem; font-size: 0.74rem;">
+              <span><i data-lucide="play"></i></span> <span id="labelStartLandingBtn">Start Landing</span>
+            </button>
+            <button class="btn btn-secondary" id="btnSpeedLandingSim" onclick="cycleSimSpeed()" style="padding: 0.35rem 0.6rem; font-size: 0.7rem;" title="Playback speed">
+              <span id="labelSimSpeed">1x Speed</span>
+            </button>
+            <button class="btn btn-secondary" id="btnResetLandingSim" onclick="resetLandingSimulation()" style="padding: 0.35rem 0.6rem; font-size: 0.7rem;" title="Reset simulation">
+              <span><i data-lucide="rotate-ccw"></i></span> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulation Grid: Stage & Visual Trajectory on Left, Decision Engine & Telemetry on Right -->
+        <div class="sim-layout-grid">
+          
+          <!-- Left: Trajectory Canvas Stage -->
+          <div class="sim-stage-container">
+            <canvas id="simLandingCanvas" width="760" height="420" style="display: block; width: 100%; height: 100%; cursor: crosshair;"></canvas>
+            
+            <!-- Canvas HUD Badges -->
+            <div class="sim-hud-top-left">
+              <div class="sim-hud-pill">
+                <span class="pulsing-dot"></span>
+                AUTONOMOUS GNC DESCENT GUIDANCE
+              </div>
+              <div class="sim-hud-subpill" id="simHudPhaseTag">
+                PHASE: POWERED DESCENT INITIATION (PDI)
+              </div>
+            </div>
+
+            <div class="sim-hud-top-right">
+              <div class="sim-hud-alt-val" id="simHudAltitude">15,000 m</div>
+              <div class="sim-hud-range-val" id="simHudRange">DOWNRANGE: 30.0 km</div>
+            </div>
+
+            <!-- Target 40m Safe Pad Indicator -->
+            <div class="sim-hud-target-badge">
+              <i data-lucide="shield-check" style="width:11px;height:11px;vertical-align:middle;"></i> 40m CERTIFIED TOUCHDOWN PAD
+            </div>
+
+            <!-- Cold Trap Hazard Overlay Alert Box -->
+            <div id="simPsrExclusionTag" class="sim-hud-psr-badge">
+              <i data-lucide="alert-octagon" style="width:11px;height:11px;vertical-align:middle;"></i> PSR CRATER EXCLUSION ZONE (0 SOLAR / 40K)
+            </div>
+          </div>
+
+          <!-- Right: Decision Making Log Stream & Real-Time Telemetry HUD -->
+          <div class="sim-telemetry-col">
+            
+            <!-- Flight Phase Progress Stepper -->
+            <div class="sim-phase-stepper">
+              <div class="phase-step active" id="stepPDI"><span class="step-num">1</span> PDI</div>
+              <div class="phase-step" id="stepHighGate"><span class="step-num">2</span> HIGH GATE</div>
+              <div class="phase-step" id="stepHDA"><span class="step-num">3</span> HDA DIVERT</div>
+              <div class="phase-step" id="stepLowGate"><span class="step-num">4</span> LOW GATE</div>
+              <div class="phase-step" id="stepTouchdown"><span class="step-num">5</span> TOUCHDOWN</div>
+            </div>
+
+            <!-- GNC Telemetry Metrics Grid -->
+            <div class="sim-metrics-grid">
+              <div class="sim-metric-card">
+                <span class="smc-label">VERTICAL VELOCITY (Vz)</span>
+                <span class="smc-val" id="simValVz">-85.0 m/s</span>
+              </div>
+              <div class="sim-metric-card">
+                <span class="smc-label">HORIZONTAL VELOCITY (Vx)</span>
+                <span class="smc-val" id="simValVx">1,680 m/s</span>
+              </div>
+              <div class="sim-metric-card">
+                <span class="smc-label">MAIN ENGINE THROTTLE</span>
+                <span class="smc-val" id="simValThrottle" style="color: var(--color-caution);">100% (45.0 kN)</span>
+              </div>
+              <div class="sim-metric-card">
+                <span class="smc-label">PROPELLANT MASS</span>
+                <span class="smc-val" id="simValPropellant">8,500 kg</span>
+              </div>
+              <div class="sim-metric-card">
+                <span class="smc-label">PITCH ATTITUDE</span>
+                <span class="smc-val" id="simValPitch">65.0° (Braking)</span>
+              </div>
+              <div class="sim-metric-card">
+                <span class="smc-label">PSR STANDOFF DISTANCE</span>
+                <span class="smc-val" id="simValPsrStandoff" style="color: var(--color-safe);">+420 m (SAFE &gt; 40m)</span>
+              </div>
+            </div>
+
+            <!-- Autonomous Decision-Making Stream Terminal -->
+            <div class="sim-decision-box">
+              <div class="sim-decision-header">
+                <span style="font-size: 0.72rem; font-weight: 700; color: var(--color-cyan); display: flex; align-items: center; gap: 0.35rem;">
+                  <i data-lucide="cpu" style="width:13px;height:13px;"></i> AUTONOMOUS GNC DECISION STREAM
+                </span>
+                <span style="font-size: 0.6rem; color: #10b981; font-family: var(--font-mono);">DECISION MATRIX: ACTIVE</span>
+              </div>
+              <div id="simDecisionStream" class="sim-decision-stream">
+                <!-- Timestamped decision events inserted live -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
       <div class="sites-grid" id="sitesGrid">
         <!-- Rendered dynamically from real outputs/landing_sites.json by app.js -->
       </div>

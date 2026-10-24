@@ -1609,6 +1609,8 @@ class LunaSafeHandler(SimpleHTTPRequestHandler):
             slope_deg = np.degrees(np.arctan(np.sqrt(dx*dx + dy*dy) / max(cell_spacing_m, 1.0)))
             mean_slope = float(slope_deg.mean())
 
+            clean_psr = (psr > 0).astype(int).tolist() if psr is not None else [[0]*len(clean_dem[0]) for _ in range(len(clean_dem))]
+
             result = {
                 "status": "SUCCESS",
                 "site_id": resolved_id,
@@ -1631,6 +1633,7 @@ class LunaSafeHandler(SimpleHTTPRequestHandler):
                 "grid_w": len(clean_dem[0]) if clean_dem else 0,
                 "grid_h": len(clean_dem),
                 "dem": clean_dem,
+                "psr": clean_psr,
                 "is_active": (resolved_id == ACTIVE_SITE_ID)
             }
             self._site_preview_cache[resolved_id] = result

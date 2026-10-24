@@ -190,15 +190,6 @@ def generate_site_terrain(
 
     meta = LUNAR_SITES[site_id]
     ny, nx = shape
-    x = (np.arange(nx) - nx / 2.0) * pixel_size_m
-    y = (np.arange(ny) - ny / 2.0) * pixel_size_m
-    xx, yy = np.meshgrid(x, y)
-    r = np.sqrt(xx**2 + yy**2)
-
-    # Base elevation and scaling
-    base_elev = meta["floor_elevation_m"]
-    rim_elev = meta["rim_elevation_m"]
-    depth = meta["depth_m"]
 
     # If real NASA orbital datasets exist on disk, use authentic NASA LOLA topography and PSR map
     if site_id != "synthetic":
@@ -227,6 +218,7 @@ def generate_site_terrain(
     dem, psr, _ = generate_synthetic_crater_topography(shape=shape, pixel_size=pixel_size_m)
 
     # Micro-relief noise
+    rng = np.random.default_rng(config.RANDOM_SEED)
     dem += rng.normal(0.0, 0.35, size=shape).astype(np.float32)
 
     # Border collar NoData (4 pixels)

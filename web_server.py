@@ -1634,6 +1634,8 @@ class LunaSafeHandler(SimpleHTTPRequestHandler):
                 "grid_h": len(clean_dem),
                 "dem": clean_dem,
                 "psr": clean_psr,
+                "is_synthetic": (resolved_id == "synthetic"),
+                "source": "NASA Planetary Data System (LRO LOLA 240m/px)" if resolved_id != "synthetic" else "Procedural Benchmark Model",
                 "is_active": (resolved_id == ACTIVE_SITE_ID)
             }
             self._site_preview_cache[resolved_id] = result

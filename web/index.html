@@ -143,6 +143,9 @@
             <span style="font-size: 0.72rem; color: var(--text-muted); display: inline-flex; align-items: center;"><i data-lucide="search" style="width:13px;height:13px;"></i></span>
             <input type="text" class="header-search-input" id="globalSearchInput" placeholder="Jump to crater or site..." oninput="onGlobalSearch(this.value)" autocomplete="off">
           </div>
+          <button class="btn btn-primary" id="btnLandingSimHeader" onclick="switchTab('landingSitesTab'); setTimeout(() => startLandingSimulationForSite('alpha'), 200);" title="Launch autonomous lunar landing descent simulation" style="background: linear-gradient(135deg, #0ea5e9, #10b981); border-color: rgba(56, 189, 248, 0.6); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);">
+            <span><i data-lucide="satellite"></i></span> Landing Sim
+          </button>
           <button class="btn btn-tour" id="btnTourHeader" onclick="startJudgeTour()" title="Interactive 60-second guided tour for hackathon judges">
             <span><i data-lucide="award"></i></span> 60s Tour
           </button>
@@ -1825,41 +1828,21 @@
         </button>
       </div>
 
-      <!-- Candidate Site Ranking Formula Card (Defect 5) -->
-      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-cyan);">
-        <h3 style="font-size: 0.92rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
-          <span><i data-lucide="ruler"></i></span> Candidate Site Ranking Formula (Rule-Based)
-        </h3>
-        <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem;">
-          Landing suitability is evaluated deterministically using the inverted multi-criteria hazard screening index across each landing ellipse:
-        </p>
-        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--color-cyan); margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: rgba(0, 229, 255, 0.06); border-radius: 4px; border: 1px solid rgba(0, 229, 255, 0.2);">
-          Suitability Score: S = 1.0 - H &nbsp;&nbsp;|&nbsp;&nbsp; H = Ws·(Slope / 15°) + Wr·(Roughness / 5.0m) + Wd·ShadowFraction
+      <!-- Autonomous Lunar Landing Simulation Hero Banner -->
+      <div class="landing-sim-hero-banner" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.16), rgba(16, 185, 129, 0.16)); border: 1px solid rgba(0, 229, 255, 0.4); border-radius: 8px; padding: 0.85rem 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div style="width: 44px; height: 44px; border-radius: 8px; background: rgba(0, 229, 255, 0.2); border: 1px solid var(--color-cyan); display: flex; align-items: center; justify-content: center; color: var(--color-cyan); font-size: 1.4rem;">
+            <i data-lucide="satellite"></i>
+          </div>
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 800; color: #fff; letter-spacing: 0.02em;">Autonomous Lunar Landing Simulation &amp; Trajectory Guidance</div>
+            <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.2rem;">Interactive GNC powered descent, optical terrain matching, autonomous PSR cold-trap avoidance, and touchdown dynamics.</div>
+          </div>
         </div>
-        <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
-          Deterministic Screening Constraints: 100% of candidate landing ellipse area must satisfy Slope &lt; 5.0°, Local Roughness &lt; 1.5 m, PSR standoff &gt; 40 m buffer, and zero intersection with Unsafe (Class 3) or Shadowed (Class 4) terrain.
-        </p>
-      </div>
-
-      <!-- Landing Site Comparison (Phase 4) -->
-      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-safe);" id="siteComparePanel">
-        <div class="panel-header">
-          <h3 style="font-size: 0.95rem;"><i data-lucide="scale" style="width:15px;height:15px;"></i> Compare Landing Candidates (2–3 sites)</h3>
-          <span class="status-badge badge-connected" style="font-size: 0.62rem;" id="compareCountBadge">0 SELECTED</span>
-        </div>
-        <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
-          Pick up to three candidates below (or add the currently inspected pixel). Metrics are computed live from the active dataset inside each 100 m landing ellipse.
-        </div>
-        <div class="compare-select-row" id="compareSelectRow"><!-- populated by app.js --></div>
-        <div id="compareTableWrap" class="hidden">
-          <table class="compare-table" id="compareTable">
-            <thead><tr id="compareTableHead"></tr></thead>
-            <tbody id="compareTableBody"></tbody>
-          </table>
-          <div class="compare-verdict" id="compareVerdict"></div>
-        </div>
-        <div id="compareEmpty" style="font-size: 0.72rem; color: var(--text-muted); padding: 0.5rem 0;">
-          No candidates selected yet.
+        <div style="display: flex; gap: 0.6rem; align-items: center;">
+          <button class="btn btn-primary" id="btnHeroStartLanding" onclick="startLandingSimulationForSite('alpha')" style="font-size: 0.82rem; font-weight: 800; padding: 0.5rem 1.15rem; background: linear-gradient(135deg, #0ea5e9, #10b981); border: 1px solid #38bdf8; box-shadow: 0 0 16px rgba(0, 229, 255, 0.4);">
+            <span><i data-lucide="play"></i></span> Start Lunar Landing Simulation
+          </button>
         </div>
       </div>
 
@@ -1983,8 +1966,53 @@
         </div>
       </div>
 
-      <div class="sites-grid" id="sitesGrid">
+      <!-- Candidate Landing Sites Grid -->
+      <div style="margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--color-cyan);"></i> Candidate Landing Sites (Screened with 40m Buffer)
+        </h3>
+        <span class="status-badge badge-connected" style="font-size: 0.68rem;">3 CERTIFIED SITES</span>
+      </div>
+      <div class="sites-grid" id="sitesGrid" style="margin-bottom: 1.5rem;">
         <!-- Rendered dynamically from real outputs/landing_sites.json by app.js -->
+      </div>
+
+      <!-- Candidate Site Ranking Formula Card (Defect 5) -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-cyan);">
+        <h3 style="font-size: 0.92rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span><i data-lucide="ruler"></i></span> Candidate Site Ranking Formula (Rule-Based)
+        </h3>
+        <p style="font-size: 0.76rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem;">
+          Landing suitability is evaluated deterministically using the inverted multi-criteria hazard screening index across each landing ellipse:
+        </p>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--color-cyan); margin: 0.5rem 0; padding: 0.5rem 0.75rem; background: rgba(0, 229, 255, 0.06); border-radius: 4px; border: 1px solid rgba(0, 229, 255, 0.2);">
+          Suitability Score: S = 1.0 - H &nbsp;&nbsp;|&nbsp;&nbsp; H = Ws·(Slope / 15°) + Wr·(Roughness / 5.0m) + Wd·ShadowFraction
+        </div>
+        <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.35rem;">
+          Deterministic Screening Constraints: 100% of candidate landing ellipse area must satisfy Slope &lt; 5.0°, Local Roughness &lt; 1.5 m, PSR standoff &gt; 40 m buffer, and zero intersection with Unsafe (Class 3) or Shadowed (Class 4) terrain.
+        </p>
+      </div>
+
+      <!-- Landing Site Comparison (Phase 4) -->
+      <div class="glass-panel" style="margin-bottom: 1.25rem; border-left: 3px solid var(--color-safe);" id="siteComparePanel">
+        <div class="panel-header">
+          <h3 style="font-size: 0.95rem;"><i data-lucide="scale" style="width:15px;height:15px;"></i> Compare Landing Candidates (2–3 sites)</h3>
+          <span class="status-badge badge-connected" style="font-size: 0.62rem;" id="compareCountBadge">0 SELECTED</span>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 0.6rem;">
+          Pick up to three candidates below (or add the currently inspected pixel). Metrics are computed live from the active dataset inside each 100 m landing ellipse.
+        </div>
+        <div class="compare-select-row" id="compareSelectRow"><!-- populated by app.js --></div>
+        <div id="compareTableWrap" class="hidden">
+          <table class="compare-table" id="compareTable">
+            <thead><tr id="compareTableHead"></tr></thead>
+            <tbody id="compareTableBody"></tbody>
+          </table>
+          <div class="compare-verdict" id="compareVerdict"></div>
+        </div>
+        <div id="compareEmpty" style="font-size: 0.72rem; color: var(--text-muted); padding: 0.5rem 0;">
+          No candidates selected yet.
+        </div>
       </div>
     </div>
 
@@ -2935,7 +2963,10 @@
             <div id="site3dTouchdownHud" class="site-3d-touchdown-hud" style="display: none;">
               <div class="touchdown-hud-header">
                 <span id="site3dTouchdownMode"><i data-lucide="crosshair"></i> TARGETING LANDER MODULE</span>
-                <span id="site3dTouchdownScoreBadge" class="status-badge badge-connected">94.2% FIT</span>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                  <span id="site3dTouchdownScoreBadge" class="status-badge badge-connected">94.2% FIT</span>
+                  <button type="button" onclick="document.getElementById('site3dTouchdownHud').style.display='none'" title="Close HUD" style="background: none; border: none; color: #94a3b8; font-size: 1.15rem; line-height: 1; cursor: pointer; padding: 0 3px;">&times;</button>
+                </div>
               </div>
               <div class="touchdown-hud-metrics">
                 <div><span>Touchdown Slope:</span> <b id="site3dTouchdownSlope">1.2° (PASS)</b></div>

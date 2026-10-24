@@ -4446,8 +4446,13 @@ h3 [data-lucide] {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  pointer-events: auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  pointer-events: none;
   z-index: 5;
+}
+.site-3d-hud-top > * {
+  pointer-events: auto;
 }
 
 .site-3d-tag {
@@ -4688,24 +4693,25 @@ h3 [data-lucide] {
   letter-spacing: 0.02em;
 }
 
-/* Real-time Touchdown / Placement HUD in 3D Mount */
+/* Real-time Touchdown / Placement HUD in 3D Mount - Positioned at bottom-left to prevent overlapping toolbar */
 .site-3d-touchdown-hud {
   position: absolute;
-  top: 48px;
+  top: auto;
+  bottom: 56px;
   left: 12px;
-  background: rgba(11, 20, 36, 0.88);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 229, 255, 0.35);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 229, 255, 0.2);
-  border-radius: 6px;
-  padding: 0.55rem 0.75rem;
-  z-index: 8;
-  max-width: 290px;
-  animation: fadeInDown 0.2s ease-out;
+  background: rgba(11, 20, 36, 0.94);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.75), 0 0 16px rgba(0, 229, 255, 0.25);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  z-index: 9;
+  max-width: 320px;
+  animation: fadeInUp 0.2s ease-out;
 }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-6px); }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -5113,3 +5119,12 @@ h3 [data-lucide] {
   from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.landing-sim-hero-banner {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.landing-sim-hero-banner:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.25);
+}
+

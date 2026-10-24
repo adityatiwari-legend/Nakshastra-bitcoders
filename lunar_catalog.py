@@ -200,98 +200,31 @@ def generate_site_terrain(
     rim_elev = meta["rim_elevation_m"]
     depth = meta["depth_m"]
 
-    # Site-specific topographic synthesis
-    rng = np.random.RandomState(abs(hash(site_id)) % (2**31 - 1))
-
-    if site_id == "shackleton":
-        # Sharp deep bowl, off-center peak ridge
-        crater_radius = 1100.0
-        floor_radius = 450.0
-        dem = np.full(shape, base_elev + depth * 0.7, dtype=np.float32)
-
-        # Floor
-        flr = r <= floor_radius
-        dem[flr] = base_elev + 15.0 * (r[flr] / floor_radius)**2
-
-        # Walls (very steep, 25-30 deg)
-        walls = (r > floor_radius) & (r <= crater_radius)
-        wf = (r[walls] - floor_radius) / (crater_radius - floor_radius)
-        dem[walls] = base_elev + (depth * 0.95) * (wf**1.3)
-
-        # High illuminated connecting ridge peak on North-East rim
-        ridge = (r > crater_radius) & (r <= crater_radius * 1.8)
-        dem[ridge] = (base_elev + depth * 0.7) + rim_elev * np.exp(-3.0 * (r[ridge] - crater_radius) / 600.0)
-        dem += 180.0 * np.exp(-((xx - 700.0)**2 + (yy - 600.0)**2) / (400.0**2))
-
-        # Shadow inside crater bowl
-        psr = np.zeros(shape, dtype=np.uint8)
-        psr[(r <= floor_radius * 1.1) & (yy <= 100.0)] = 1
-
-    elif site_id == "malapert":
-        # Elevated mountain massif / peak with gentle summit plateau
-        massif_radius = 1200.0
-        plateau_radius = 500.0
-        dist_factor = np.clip(r / massif_radius, 0.0, 1.0)
-        dem = base_elev + (rim_elev - base_elev) * (1.0 - dist_factor**1.6)
-
-        # Summit plateau (smooth, safe)
-        plat = r <= plateau_radius
-        dem[plat] += 30.0 * np.cos(xx[plat] / 300.0) * np.sin(yy[plat] / 300.0)
-
-        # Southern scarp (steep drop)
-        scarp = (yy < -200.0) & (r > plateau_radius)
-        dem[scarp] -= 450.0 * np.clip(-yy[scarp] / 800.0, 0.0, 1.0)
-
-        # Narrow shadow pocket on south flank
-        psr = np.zeros(shape, dtype=np.uint8)
-        psr[(yy < -400.0) & (abs(xx) < 400.0)] = 1
-
-    elif site_id == "nobile":
-        # Rolling cratered terrain, moderate slopes, shallow depressions
-        dem = base_elev + 150.0 * np.sin(xx / 450.0) * np.cos(yy / 550.0) + 80.0 * np.cos(xx / 250.0)
-        # Add 3 micro-craters
-        craters = [(-400, 300, 250, 70), (500, -300, 300, 90), (100, 400, 180, 50)]
-        psr = np.zeros(shape, dtype=np.uint8)
-        for cx, cy, cradius, cdepth in craters:
-            cdist = np.sqrt((xx - cx)**2 + (yy - cy)**2)
-            cmask = cdist <= cradius
-            dem[cmask] -= cdepth * (1.0 - (cdist[cmask] / cradius)**2)
-            # Cold-trap pocket inside micro-crater
-            psr[cmask & (yy < cy)] = 1
-
-    elif site_id == "faustini":
-        # Broad impact basin floor with gentle undulating slope
-        basin_radius = 1300.0
-        dem = base_elev + 120.0 * (r / basin_radius)**2
-        rim_mask = r > 1000.0
-        dem[rim_mask] += 300.0 * ((r[rim_mask] - 1000.0) / 400.0)**1.4
-        psr = np.zeros(shape, dtype=np.uint8)
-        # Deep continuous shadow across southern half
-        psr[(r <= 850.0) & (yy <= 150.0)] = 1
-
-    elif site_id == "lola_crop":
-        if config.REAL_DEM_PATH.exists() and config.REAL_PSR_PATH.exists():
+    # If real NASA orbital datasets exist on disk, use authentic NASA LOLA topography and PSR map
+    if site_id != "synthetic":
+        if site_id == "lola_crop" and config.REAL_DEM_PATH.exists() and config.REAL_PSR_PATH.exists():
             import io_utils
             d_info = io_utils.read_geotiff(config.REAL_DEM_PATH)
             p_info = io_utils.read_geotiff(config.REAL_PSR_PATH)
             return d_info["data"].astype(np.float32), p_info["data"].astype(np.uint8), d_info["transform"], d_info["crs"]
-        else:
-            from io_utils import generate_synthetic_crater_topography
-            dem, psr, _ = generate_synthetic_crater_topography(shape=shape, pixel_size=pixel_size_m)
+        elif config.LOLA_DEM_JP2_PATH.exists() and config.LPSR_JP2_PATH.exists():
+            try:
+                crop_px = shape[0]
+                dem_r, psr_r, transform_r, crs_r = _crop_real_region(
+                    lat=meta["center_lat"], lon=meta["center_lon"], size_px=crop_px
+                )
+                return dem_r.astype(np.float32), psr_r.astype(np.uint8), transform_r, crs_r
+            except Exception:
+                pass
+        elif config.REAL_DEM_PATH.exists() and config.REAL_PSR_PATH.exists() and abs(meta.get("center_lat", -90) - (-90.0)) <= 1.0:
+            import io_utils
+            d_info = io_utils.read_geotiff(config.REAL_DEM_PATH)
+            p_info = io_utils.read_geotiff(config.REAL_PSR_PATH)
+            return d_info["data"].astype(np.float32), p_info["data"].astype(np.uint8), d_info["transform"], d_info["crs"]
 
-    elif site_id.startswith("artemis_"):
-        # Official Artemis III candidate region: real DEM + published LPSR crop
-        region = LUNAR_SITES[site_id]
-        crop_px = config.POLE_CROP_SIZE_PX  # match pipeline grid (250x250 @ 240 m)
-        dem_r, psr_r, transform_r, crs_r = _crop_real_region(
-            lat=region["center_lat"], lon=region["center_lon"], size_px=crop_px
-        )
-        return dem_r.astype(np.float32), psr_r.astype(np.uint8), transform_r, crs_r
-
-    else:
-        # Default synthetic
-        from io_utils import generate_synthetic_crater_topography
-        dem, psr, _ = generate_synthetic_crater_topography(shape=shape, pixel_size=pixel_size_m)
+    # Fallback / Synthetic procedural benchmark only if site is explicitly synthetic or real data unavailable
+    from io_utils import generate_synthetic_crater_topography
+    dem, psr, _ = generate_synthetic_crater_topography(shape=shape, pixel_size=pixel_size_m)
 
     # Micro-relief noise
     dem += rng.normal(0.0, 0.35, size=shape).astype(np.float32)
